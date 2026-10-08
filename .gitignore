@@ -1,0 +1,52 @@
+# Environment and credentials
+.env
+.env.*
+*_secrets/
+empower_secrets/
+db_credentials.php
+
+# Logs
+*.log
+logs/
+error_log
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*~
+
+# IDE and editor files
+.vscode/
+.idea/
+*.sublime-*
+
+# Vendor dependencies (if using Composer)
+/vendor/
+
+# Node modules (if any)
+node_modules/
+
+# Database backups
+*.sql
+*.sql.gz
+backups/
+
+# Uploaded files (consider if you want to track these)
+uploads/
+files/
+
+# System files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Testing and diagnostic scripts
+audit_savings_gl.php
+implement_gl_restructure.php
+test_gl_restructure.php
+check_tables.php
+check_encoding.php
+fix_encoding.php
+fix_encoding.bat
+fix_encoding_direct.sql
