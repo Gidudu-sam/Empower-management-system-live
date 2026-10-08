@@ -100,8 +100,9 @@ $base = APP_URL . '/index.php';
                     <th class="ps-4">Member</th>
                     <th>Member No.</th>
                     <th>Email</th>
+                    <th>Phone</th>
                     <th>Status</th>
-                    <th class="text-end pe-4">Email Status</th>
+                    <th class="text-end pe-4">Actions</th>
                 </tr>
             </thead>
             <tbody style="font-size:.875rem;">
@@ -109,15 +110,29 @@ $base = APP_URL . '/index.php';
                 $eligible  = !empty($m['email']);
                 $sent      = in_array((int)$m['id'], $alreadySentIds, true);
                 $fullName  = htmlspecialchars($m['first_name'] . ' ' . $m['last_name']);
+                $firstName = htmlspecialchars($m['first_name']);
+                $email     = htmlspecialchars($m['email'] ?? '');
+                $phone     = htmlspecialchars($m['phone'] ?? '');
+                
+                // WhatsApp message
+                $whatsappMsg = urlencode("🎉 Happy Birthday, {$firstName}! 🎂\n\nWishing you a wonderful day filled with joy and happiness. May this year bring you success, good health, and prosperity.\n\nFrom all of us at " . APP_NAME . "! 🎈");
+                $whatsappLink = "https://wa.me/" . preg_replace('/[^0-9]/', '', $phone) . "?text=" . $whatsappMsg;
             ?>
             <tr>
                 <td class="ps-4 fw-semibold"><?= $fullName ?></td>
                 <td class="text-muted"><?= htmlspecialchars($m['member_number'] ?? '') ?></td>
                 <td>
                     <?php if (!empty($m['email'])): ?>
-                        <span class="text-muted small"><?= htmlspecialchars($m['email']) ?></span>
+                        <span class="text-muted small"><?= $email ?></span>
                     <?php else: ?>
                         <span class="badge bg-warning text-dark">No email</span>
+                    <?php endif; ?>
+                </td>
+                <td>
+                    <?php if (!empty($phone)): ?>
+                        <span class="text-muted small"><?= $phone ?></span>
+                    <?php else: ?>
+                        <span class="badge bg-warning text-dark">No phone</span>
                     <?php endif; ?>
                 </td>
                 <td>
@@ -126,15 +141,45 @@ $base = APP_URL . '/index.php';
                     </span>
                 </td>
                 <td class="text-end pe-4">
-                    <?php if (!$eligible): ?>
-                        <span class="badge bg-warning text-dark">Skipped — no email</span>
-                    <?php elseif ($sent): ?>
-                        <span class="badge bg-success">
-                            <i class="bi bi-check-circle me-1"></i>Sent
-                        </span>
-                    <?php else: ?>
-                        <span class="badge bg-light text-secondary border">Pending</span>
-                    <?php endif; ?>
+                    <div class="d-flex gap-1 justify-content-end align-items-center">
+                        <!-- Email Status Badge -->
+                        <?php if (!$eligible): ?>
+                            <span class="badge bg-warning text-dark me-2">No email</span>
+                        <?php elseif ($sent): ?>
+                            <span class="badge bg-success me-2">
+                                <i class="bi bi-check-circle me-1"></i>Sent
+                            </span>
+                        <?php else: ?>
+                            <span class="badge bg-light text-secondary border me-2">Pending</span>
+                        <?php endif; ?>
+                        
+                        <!-- Send Email Button -->
+                        <?php if (!empty($m['email']) && $mailerConfigured): ?>
+                            <button class="btn btn-sm btn-outline-primary" 
+                                    onclick="sendSingleBirthdayEmail(<?= $m['id'] ?>, '<?= $firstName ?>')"
+                                    title="Send birthday email to <?= $fullName ?>">
+                                <i class="bi bi-envelope"></i>
+                            </button>
+                        <?php else: ?>
+                            <button class="btn btn-sm btn-outline-secondary" disabled title="No email available">
+                                <i class="bi bi-envelope"></i>
+                            </button>
+                        <?php endif; ?>
+                        
+                        <!-- Send WhatsApp Button -->
+                        <?php if (!empty($phone)): ?>
+                            <a href="<?= $whatsappLink ?>" 
+                               target="_blank" 
+                               class="btn btn-sm btn-outline-success"
+                               title="Send birthday wish via WhatsApp">
+                                <i class="bi bi-whatsapp"></i>
+                            </a>
+                        <?php else: ?>
+                            <button class="btn btn-sm btn-outline-secondary" disabled title="No phone number">
+                                <i class="bi bi-whatsapp"></i>
+                            </button>
+                        <?php endif; ?>
+                    </div>
                 </td>
             </tr>
             <?php endforeach; ?>
@@ -166,7 +211,9 @@ $base = APP_URL . '/index.php';
                     <th class="ps-4">Member</th>
                     <th>Member No.</th>
                     <th>Birthday</th>
-                    <th class="pe-4">Email</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th class="text-end pe-4">Actions</th>
                 </tr>
             </thead>
             <tbody style="font-size:.875rem;">
@@ -177,10 +224,20 @@ $base = APP_URL . '/index.php';
                     $bday->modify('+1 year');
                 }
                 $daysAway = (int)(new DateTime('today'))->diff($bday)->days;
+                
+                // Prepare data for buttons
+                $firstName = htmlspecialchars($m['first_name']);
+                $fullName = htmlspecialchars($m['first_name'] . ' ' . $m['last_name']);
+                $email = htmlspecialchars($m['email'] ?? '');
+                $phone = htmlspecialchars($m['phone'] ?? '');
+                
+                // WhatsApp message
+                $whatsappMsg = urlencode("🎉 Happy Birthday, {$firstName}! 🎂\n\nWishing you a wonderful day filled with joy and happiness. May this year bring you success, good health, and prosperity.\n\nFrom all of us at " . APP_NAME . "! 🎈");
+                $whatsappLink = "https://wa.me/" . preg_replace('/[^0-9]/', '', $phone) . "?text=" . $whatsappMsg;
             ?>
             <tr>
                 <td class="ps-4 fw-semibold">
-                    <?= htmlspecialchars($m['first_name'] . ' ' . $m['last_name']) ?>
+                    <?= $fullName ?>
                 </td>
                 <td class="text-muted"><?= htmlspecialchars($m['member_number'] ?? '') ?></td>
                 <td>
@@ -189,12 +246,49 @@ $base = APP_URL . '/index.php';
                         (<?= $daysAway === 1 ? 'tomorrow' : "in {$daysAway} days" ?>)
                     </span>
                 </td>
-                <td class="pe-4">
+                <td>
                     <?php if (!empty($m['email'])): ?>
-                        <i class="bi bi-check-circle text-success"></i>
+                        <span class="text-muted small"><?= $email ?></span>
                     <?php else: ?>
                         <span class="badge bg-warning text-dark">No email</span>
                     <?php endif; ?>
+                </td>
+                <td>
+                    <?php if (!empty($phone)): ?>
+                        <span class="text-muted small"><?= $phone ?></span>
+                    <?php else: ?>
+                        <span class="badge bg-warning text-dark">No phone</span>
+                    <?php endif; ?>
+                </td>
+                <td class="text-end pe-4">
+                    <div class="d-flex gap-1 justify-content-end">
+                        <!-- Send Email Button -->
+                        <?php if (!empty($m['email']) && $mailerConfigured): ?>
+                            <button class="btn btn-sm btn-outline-primary" 
+                                    onclick="sendSingleBirthdayEmail(<?= $m['id'] ?>, '<?= $firstName ?>')"
+                                    title="Send birthday email to <?= $fullName ?>">
+                                <i class="bi bi-envelope"></i>
+                            </button>
+                        <?php else: ?>
+                            <button class="btn btn-sm btn-outline-secondary" disabled title="No email available">
+                                <i class="bi bi-envelope"></i>
+                            </button>
+                        <?php endif; ?>
+                        
+                        <!-- Send WhatsApp Button -->
+                        <?php if (!empty($phone)): ?>
+                            <a href="<?= $whatsappLink ?>" 
+                               target="_blank" 
+                               class="btn btn-sm btn-outline-success"
+                               title="Send birthday wish via WhatsApp">
+                                <i class="bi bi-whatsapp"></i>
+                            </a>
+                        <?php else: ?>
+                            <button class="btn btn-sm btn-outline-secondary" disabled title="No phone number">
+                                <i class="bi bi-whatsapp"></i>
+                            </button>
+                        <?php endif; ?>
+                    </div>
                 </td>
             </tr>
             <?php endforeach; ?>
@@ -327,3 +421,44 @@ $base = APP_URL . '/index.php';
     </div>
 </div>
 <?php endif; ?>
+
+
+<!-- JavaScript for single email sending -->
+<script>
+function sendSingleBirthdayEmail(memberId, firstName) {
+    if (!confirm(`Send birthday email to ${firstName}?`)) {
+        return;
+    }
+    
+    // Show loading state
+    const button = event.target.closest('button');
+    const originalHtml = button.innerHTML;
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+    
+    // Send AJAX request
+    fetch('<?= APP_URL ?>/index.php?page=birthday-send-single', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `member_id=${memberId}&csrf_token=<?= htmlspecialchars($csrfToken) ?>`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`✓ Birthday email sent to ${firstName}!`);
+            location.reload();
+        } else {
+            alert(`✗ Failed to send email: ${data.message}`);
+            button.disabled = false;
+            button.innerHTML = originalHtml;
+        }
+    })
+    .catch(error => {
+        alert('Error sending email. Please try again.');
+        button.disabled = false;
+        button.innerHTML = originalHtml;
+    });
+}
+</script>

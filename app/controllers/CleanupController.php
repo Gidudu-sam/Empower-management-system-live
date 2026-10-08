@@ -416,4 +416,124 @@ class CleanupController extends Controller
         <?php
         echo ob_get_clean();
     }
+
+    public function deleteVouchers(): void
+    {
+        // Only allow admin to run this
+        Session::requireAuth();
+        if (!Session::hasRole(['admin'])) {
+            die("Access denied. Only admin can run cleanup.");
+        }
+
+        $pdo = Database::getInstance()->getConnection();
+        
+        ob_start();
+        ?>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Delete Internal Vouchers</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1200px; margin: 20px auto; padding: 20px; background: #f5f5f5; }
+        .container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; border-bottom: 3px solid #3498db; padding-bottom: 10px; }
+        h2 { color: #34495e; margin-top: 30px; }
+        .success { background: #d4edda; color: #155724; padding: 15px; border-radius: 5px; margin: 10px 0; border-left: 4px solid #28a745; }
+        .error { background: #f8d7da; color: #721c24; padding: 15px; border-radius: 5px; margin: 10px 0; border-left: 4px solid #dc3545; }
+        .info { background: #d1ecf1; color: #0c5460; padding: 15px; border-radius: 5px; margin: 10px 0; border-left: 4px solid #17a2b8; }
+        .warning { background: #fff3cd; color: #856404; padding: 15px; border-radius: 5px; margin: 10px 0; border-left: 4px solid #ffc107; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #3498db; color: white; }
+        tr:hover { background-color: #f5f5f5; }
+        .step { background: #ecf0f1; padding: 10px; margin: 10px 0; border-radius: 4px; }
+        a { display: inline-block; padding: 10px 20px; background: #3498db; color: white; text-decoration: none; border-radius: 5px; margin-top: 10px; }
+        a:hover { background: #2980b9; }
+    </style>
+</head>
+<body>
+<div class='container'>
+<h1>🗑️ Delete Internal Vouchers</h1>
+<p>Date: <?= date('Y-m-d H:i:s') ?></p>
+
+<?php
+        $vouchersToDelete = ['IV-000011', 'IV-000010', 'IV-000009', 'IV-000008', 'IV-000007'];
+        
+        echo "<h2>📋 Step 1: Vouchers to Delete</h2>";
+        echo "<div class='info'>The following vouchers will be deleted:<ul>";
+        foreach ($vouchersToDelete as $voucher) {
+            echo "<li><strong>{$voucher}</strong></li>";
+        }
+        echo "</ul></div>";
+
+        try {
+            $pdo->beginTransaction();
+
+            // Skip journal entries - they were already cleared
+            echo "<h2>🗂️ Step 2: Checking Journal Entries</h2>";
+            echo "<div class='step'>ℹ️ Journal entries were already cleared for these vouchers</div>";
+
+            // Delete the vouchers
+            echo "<h2>🗑️ Step 3: Deleting Internal Vouchers</h2>";
+            $placeholders = implode(',', array_fill(0, count($vouchersToDelete), '?'));
+            $stmt = $pdo->prepare("DELETE FROM internal_vouchers WHERE voucher_number IN ($placeholders)");
+            $stmt->execute($vouchersToDelete);
+            $vouchersDeleted = $stmt->rowCount();
+            echo "<div class='step'>✅ Deleted <strong>{$vouchersDeleted}</strong> internal vouchers</div>";
+
+            $pdo->commit();
+
+            echo "<div class='success'><h3>🎉 Deletion Successful!</h3>";
+            echo "<p>Deleted {$vouchersDeleted} voucher record(s) from the database.</p>";
+            echo "</div>";
+
+            // Show remaining vouchers
+            echo "<h2>📊 Step 4: Remaining Vouchers (Last 10)</h2>";
+            $stmt = $pdo->query("
+                SELECT voucher_number, amount, DATE(created_at) as date, status 
+                FROM internal_vouchers
+                ORDER BY id DESC
+                LIMIT 10
+            ");
+            $remaining = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            if (empty($remaining)) {
+                echo "<div class='info'>No vouchers remaining in database.</div>";
+            } else {
+                echo "<table>";
+                echo "<tr><th>Voucher Number</th><th>Amount</th><th>Date</th><th>Status</th></tr>";
+                foreach ($remaining as $row) {
+                    echo "<tr>";
+                    echo "<td><strong>{$row['voucher_number']}</strong></td>";
+                    echo "<td>Shs " . number_format($row['amount'], 0) . "</td>";
+                    echo "<td>{$row['date']}</td>";
+                    echo "<td>{$row['status']}</td>";
+                    echo "</tr>";
+                }
+                echo "</table>";
+            }
+
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            echo "<div class='error'><h3>❌ Error Occurred!</h3>";
+            echo "<p>" . htmlspecialchars($e->getMessage()) . "</p>";
+            echo "</div>";
+        }
+
+        echo "<h2>✅ Cleanup Complete!</h2>";
+        echo "<div class='warning'><h3>⚠️ Next Steps:</h3>";
+        echo "<p>You can now return to the Internal Vouchers page to verify the deletion.</p>";
+        echo "<p><a href='" . APP_URL . "/index.php?page=internal-vouchers'>← Back to Internal Vouchers</a></p>";
+        echo "</div>";
+
+        ?>
+</div>
+</body>
+</html>
+        <?php
+        echo ob_get_clean();
+    }
+
 }

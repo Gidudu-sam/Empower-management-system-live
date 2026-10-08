@@ -15,7 +15,9 @@ define('APP_NAME', 'Empower Investment Club');
 define('APP_VERSION', '1.0.0');
 
 // Application URL (CRITICAL: set on the server for your DirectAdmin domain)
-define('APP_URL', rtrim(getenv('APP_URL') ?: 'http://localhost/empower%20management%20sys.live', '/'));
+// Local folder: empower management-sys.live (space then dash)
+$baseUrl = 'http://localhost/empower%20management-sys.live';
+define('APP_URL', rtrim(getenv('APP_URL') ?: $baseUrl, '/'));
 
 // Paths
 define('ROOT_PATH',   dirname(__DIR__, 2));

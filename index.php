@@ -26,8 +26,10 @@ $routes = [
     'logout'         => ['AuthController',      'logout'],
     'health'         => ['HealthController',    'index'],
     'dashboard'      => ['DashboardController', 'index'],
+    'pending-approvals' => ['DashboardController', 'approvals'],
     // One-time maintenance routes are registered only in development.
     'dashboard-deposit-analytics' => ['DashboardController', 'depositAnalyticsData'],
+    'dashboard-approval-count' => ['DashboardController', 'approvalCount'],
     // Member Portal module (Stage 14-B) -- every action derives its
     // member identity exclusively from Session::requireMember(), never
     // from a route/query parameter.
@@ -247,6 +249,10 @@ $routes = [
     'recovery'        => ['DatabaseRecoveryController', 'index'],
     'recovery-verify' => ['DatabaseRecoveryController', 'verify'],
     'recovery-result' => ['DatabaseRecoveryController', 'result'],
+    // Cleanup utilities (Admin only) - DISABLED FOR SECURITY
+    // 'cleanup-delete-vouchers' => ['CleanupController', 'deleteVouchers'],
+    // 'cleanup-run'             => ['CleanupController', 'runCleanup'],
+    // 'cleanup-recover'         => ['CleanupController', 'recoverAccounts'],
     // Legacy settings save (backward compat)
     'settings-save'          => ['SettingsController', 'withdrawalSettingsSave'],
     // Withdrawals module
@@ -320,6 +326,7 @@ $routes = [
     // Birthday Email module
     'birthday-dashboard'     => ['BirthdayController', 'index'],
     'birthday-send'          => ['BirthdayController', 'send'],
+    'birthday-send-single'   => ['BirthdayController', 'sendSingle'],
     'birthday-preview'       => ['BirthdayController', 'preview'],
     'birthday-history'       => ['BirthdayController', 'history'],
     // Statements module

@@ -284,6 +284,13 @@ class ShareModel extends Model
         } catch (PDOException $e) { return []; }
     }
 
+    /** Get single top shareholder for dashboard */
+    public function topShareholder(float $shareValue): array|false
+    {
+        $top = $this->topShareholders($shareValue, 1);
+        return !empty($top) ? $top[0] : false;
+    }
+
     /**
      * Chronological share ledger for one member, merging unmirrored
      * retained-withdrawal rows with any share_transactions rows, with a

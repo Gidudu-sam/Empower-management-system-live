@@ -44,4 +44,8 @@ define('SMTP_PASSWORD',  $smtpPassword !== false ? (string)$smtpPassword : '');
 define('SMTP_FROM',      $smtpFrom ?: 'noreply@localhost');
 define('SMTP_FROM_NAME', $smtpFromName ?: 'Empower Investment Club');
 
+// Aliases for backward compatibility with MailerService
+define('SMTP_USER', SMTP_USERNAME);
+define('SMTP_PASS', SMTP_PASSWORD);
+
 unset($smtpHost, $smtpPort, $smtpUsername, $smtpPassword, $smtpFrom, $smtpFromName, $secretFile);

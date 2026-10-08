@@ -112,6 +112,89 @@ class BirthdayController extends Controller
         $this->redirect(APP_URL . '/index.php?page=birthday-dashboard');
     }
 
+    // ----------------------------------------------------------------
+    // sendSingle() — POST/AJAX: send birthday email to a single member
+    // ----------------------------------------------------------------
+
+    public function sendSingle(): void
+    {
+        header('Content-Type: application/json');
+        
+        if (!$this->isPost() || !$this->verifyCsrf($_POST['csrf_token'] ?? '')) {
+            echo json_encode(['success' => false, 'message' => 'Invalid request']);
+            return;
+        }
+
+        $memberId = (int)($_POST['member_id'] ?? 0);
+        if ($memberId <= 0) {
+            echo json_encode(['success' => false, 'message' => 'Invalid member ID']);
+            return;
+        }
+
+        // Get member details
+        $member = $this->memberModel->findById($memberId);
+        if (!$member) {
+            echo json_encode(['success' => false, 'message' => 'Member not found']);
+            return;
+        }
+
+        // Check if member has email
+        if (empty($member['email'])) {
+            echo json_encode(['success' => false, 'message' => 'Member has no email address']);
+            return;
+        }
+
+        // Check if already sent this year
+        $today = $this->resolveTargetDate(date('Y-m-d'));
+        $year = (int)date('Y', strtotime($today));
+        $alreadySentIds = $this->getAlreadySentIds([$member], $year);
+        
+        if (in_array($memberId, $alreadySentIds, true)) {
+            echo json_encode(['success' => false, 'message' => 'Birthday email already sent this year']);
+            return;
+        }
+
+        // Send the email
+        $userId = (int)Session::get('user_id');
+        $fullName = $member['first_name'] . ' ' . $member['last_name'];
+        $email = $member['email'];
+        $logo = [['path' => PUBLIC_PATH . '/images/logo-email.png', 'cid' => 'logo']];
+
+        try {
+            $html = $this->buildEmailHtml($member);
+            $subject = 'Happy Birthday, ' . $member['first_name'] . '!';
+            $result = $this->mailer->send($email, $fullName, $subject, $html, $logo);
+
+            if ($result['sent']) {
+                // Log success
+                $this->settings->log(
+                    $userId,
+                    'birthday_email',
+                    "MEMBER:{$memberId}|YEAR:{$year}|STATUS:sent|EMAIL:{$email}|NAME:{$fullName}"
+                );
+                echo json_encode(['success' => true, 'message' => 'Birthday email sent successfully']);
+            } else {
+                // Log failure
+                $errorMsg = $this->sanitizeLogValue($result['error'] ?? 'Unknown error');
+                $this->settings->log(
+                    $userId,
+                    'birthday_email',
+                    "MEMBER:{$memberId}|YEAR:{$year}|STATUS:failed|EMAIL:{$email}|NAME:{$fullName}|ERROR:{$errorMsg}"
+                );
+                echo json_encode(['success' => false, 'message' => $errorMsg]);
+            }
+        } catch (Exception $e) {
+            // Log exception
+            $this->settings->log(
+                $userId,
+                'birthday_email',
+                "MEMBER:{$memberId}|YEAR:{$year}|STATUS:failed|EMAIL:{$email}|NAME:{$fullName}|ERROR:Exception: "
+                . $this->sanitizeLogValue($e->getMessage())
+            );
+            echo json_encode(['success' => false, 'message' => 'An error occurred while sending the email']);
+        }
+    }
+
     /**
      * Shared birthday batch sender for UI and CLI.
      * @return array{sent:int,skipped:int,failed:int,today:string}

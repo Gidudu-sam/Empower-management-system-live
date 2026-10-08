@@ -53,6 +53,8 @@ class DashboardController extends Controller
         $loanModel       = new LoanModel();
         $repaymentModel  = new RepaymentModel();
         $withdrawalModel = new WithdrawalModel();
+        require_once APP_PATH . '/models/ShareModel.php';
+        $shareModel      = new ShareModel();
 
         $loanModel->syncOverdueStatus();
         $memberModel->syncDormantStatus();
@@ -361,7 +363,7 @@ class DashboardController extends Controller
             'todayRepayments'        => $repaymentModel->todayCollections(),
             'recentRepayments'       => $repaymentModel->recentRepayments(5),
             'recentWithdrawals'      => $withdrawalModel->recent(5),
-            'topShareholder'         => $withdrawalModel->topShareholder(),
+            'topShareholder'         => $shareModel->topShareholder(1000), // Share value from settings
             'treasurerFinancials'    => $treasurerFinancials,
         ], 'main');
     }
@@ -418,7 +420,7 @@ class DashboardController extends Controller
             // one new destination this stage adds (read-only, matches the
             // new SettingsController::requireAuditLogAccess() grant).
             'chairman' => [
-                ['url' => $base . 'dashboard#pending-approvals', 'label' => 'Pending Approvals', 'icon' => 'bi-check2-square',   'class' => 'btn-primary'],
+                ['url' => $base . 'pending-approvals', 'label' => 'Pending Approvals', 'icon' => 'bi-check2-square',   'class' => 'btn-primary'],
                 ['url' => $base . 'report-financial',            'label' => 'Financial Summary', 'icon' => 'bi-clipboard-data',  'class' => 'btn-outline-secondary'],
                 ['url' => $base . 'loans',                       'label' => 'Loan Portfolio',    'icon' => 'bi-bank2',           'class' => 'btn-outline-primary'],
                 ['url' => $base . 'settings-audit',              'label' => 'Audit Activity',    'icon' => 'bi-journal-text',    'class' => 'btn-outline-secondary'],
@@ -427,7 +429,7 @@ class DashboardController extends Controller
             // actions, matching the full deputy parity this role was given
             // across every Chairman-gated workflow.
             'vice_chairman' => [
-                ['url' => $base . 'dashboard#pending-approvals', 'label' => 'Pending Approvals', 'icon' => 'bi-check2-square',   'class' => 'btn-primary'],
+                ['url' => $base . 'pending-approvals', 'label' => 'Pending Approvals', 'icon' => 'bi-check2-square',   'class' => 'btn-primary'],
                 ['url' => $base . 'report-financial',            'label' => 'Financial Summary', 'icon' => 'bi-clipboard-data',  'class' => 'btn-outline-secondary'],
                 ['url' => $base . 'loans',                       'label' => 'Loan Portfolio',    'icon' => 'bi-bank2',           'class' => 'btn-outline-primary'],
                 ['url' => $base . 'settings-audit',              'label' => 'Audit Activity',    'icon' => 'bi-journal-text',    'class' => 'btn-outline-secondary'],
@@ -438,13 +440,13 @@ class DashboardController extends Controller
             // brief's own "Records/Oversight" requirement) -- no link to
             // any action Secretary's backend role check does not permit.
             'secretary' => [
-                ['url' => $base . 'dashboard#pending-approvals', 'label' => 'Pending Approvals', 'icon' => 'bi-check2-square',   'class' => 'btn-primary'],
+                ['url' => $base . 'pending-approvals', 'label' => 'Pending Approvals', 'icon' => 'bi-check2-square',   'class' => 'btn-primary'],
                 ['url' => $base . 'members',                     'label' => 'Member Directory',  'icon' => 'bi-people',          'class' => 'btn-outline-primary'],
                 ['url' => $base . 'loan-applications',           'label' => 'Loan Applications', 'icon' => 'bi-file-earmark-text','class' => 'btn-outline-secondary'],
                 ['url' => $base . 'statements',                  'label' => 'Statements',        'icon' => 'bi-file-person-fill','class' => 'btn-outline-secondary'],
             ],
             'treasurer' => [
-                ['url' => $base . 'dashboard#pending-approvals', 'label' => 'Pending Approvals',  'icon' => 'bi-check2-square',   'class' => 'btn-primary'],
+                ['url' => $base . 'pending-approvals', 'label' => 'Pending Approvals',  'icon' => 'bi-check2-square',   'class' => 'btn-primary'],
                 ['url' => $base . 'savings-add',             'label' => 'Record Deposit',     'icon' => 'bi-plus-circle-fill', 'class' => 'btn-success'],
                 ['url' => $base . 'repayment-add',           'label' => 'Record Repayment',   'icon' => 'bi-arrow-down-circle-fill', 'class' => 'btn-warning'],
                 ['url' => $base . 'fee-charge-form',         'label' => 'Record Fee',         'icon' => 'bi-cash-coin',       'class' => 'btn-outline-primary'],
@@ -548,5 +550,172 @@ class DashboardController extends Controller
             'months'  => $months,
             'rows'    => $savingsModel->monthlyDepositWithdrawalTrend($months),
         ]);
+    }
+
+    /**
+     * API endpoint for auto-refresh: returns current approval count as JSON
+     */
+    public function approvalCount(): void
+    {
+        Session::requireAuth();
+        header('Content-Type: application/json');
+        
+        $isChairman = Session::hasRole(['chairman', 'vice_chairman']);
+        $count = 0;
+        
+        if ($isChairman) {
+            // Get chairman approval count
+            $chairmanOverview = $this->buildChairmanOverview();
+            $count = $chairmanOverview['totalPending'] ?? 0;
+        } else {
+            // Get admin approval count
+            $pendingApprovals = $this->gatherPendingApprovals();
+            if ($pendingApprovals !== null) {
+                $count = count($pendingApprovals['items'] ?? []);
+            }
+        }
+        
+        echo json_encode(['count' => $count, 'timestamp' => time()]);
+    }
+
+    /**
+     * Dedicated Approvals Page - shows all pending approvals in a table
+     */
+    public function approvals(): void
+    {
+        error_log("DEBUG: approvals() method called");
+        Session::requireAuth();
+        
+        $isSecretary = Session::hasRole(['secretary']);
+        $isTreasurer = Session::hasRole(['treasurer']);
+        
+        if (!Session::hasRole(['chairman', 'vice_chairman']) && !$isSecretary && !$isTreasurer) {
+            http_response_code(403);
+            die('Access denied. Only Chairman, Vice Chairman, Secretary, and Treasurer can view approvals.');
+        }
+
+        require_once APP_PATH . '/models/InternalVoucherModel.php';
+        require_once APP_PATH . '/models/MemberAccountAdjustmentModel.php';
+        require_once APP_PATH . '/models/InvestmentModel.php';
+        require_once APP_PATH . '/models/OpeningBalanceBatchModel.php';
+        require_once APP_PATH . '/models/LoanModel.php';
+        require_once APP_PATH . '/models/LoanApplicationModel.php';
+
+        $vouchers = Session::hasRole(['chairman', 'vice_chairman', 'secretary'])
+            ? (new InternalVoucherModel())->pendingApproval() : [];
+        $loanApplications = (new LoanApplicationModel())->pendingApproval();
+        $investments = (new InvestmentModel())->pendingApproval();
+        $adjustments = [];
+        $openingBalances = [];
+        $loans = [];
+        
+        if (!$isSecretary && !$isTreasurer) {
+            $adjustments = (new MemberAccountAdjustmentModel())->pendingApproval();
+            $openingBalances = (new OpeningBalanceBatchModel())->pendingApproval();
+        }
+        $loans = (new LoanModel())->pendingApproval();
+
+        // Build unified table rows
+        $allApprovals = [];
+        
+        foreach ($vouchers as $v) {
+            $allApprovals[] = [
+                'type' => 'Internal Voucher',
+                'reference' => $v['voucher_number'],
+                'amount' => (float)$v['amount'],
+                'description' => $v['description'] ?? '',
+                'submitted_by' => $v['recorded_by_name'] ?? '—',
+                'submitted_at' => $v['submitted_at'],
+                'status' => $v['approval_status'] ?? 'pending',
+                'actioned_by' => $v['approved_by_name'] ?? null,
+                'url' => APP_URL . '/index.php?page=internal-voucher-view&id=' . $v['id'],
+            ];
+        }
+        
+        foreach ($adjustments as $a) {
+            $allApprovals[] = [
+                'type' => 'Member Adjustment',
+                'reference' => $a['adjustment_number'],
+                'amount' => (float)$a['amount'],
+                'description' => $a['description'] ?? '',
+                'submitted_by' => $a['recorded_by_name'] ?? '—',
+                'submitted_at' => $a['submitted_at'],
+                'status' => $a['approval_status'] ?? 'pending',
+                'actioned_by' => $a['approved_by_name'] ?? null,
+                'url' => APP_URL . '/index.php?page=member-adjustment-view&id=' . $a['id'],
+            ];
+        }
+        
+        foreach ($investments as $i) {
+            $allApprovals[] = [
+                'type' => 'Investment',
+                'reference' => $i['investment_number'],
+                'amount' => (float)$i['principal_amount'],
+                'description' => $i['investment_type'] ?? '',
+                'submitted_by' => $i['recorded_by_name'] ?? '—',
+                'submitted_at' => $i['submitted_at'],
+                'status' => $i['approval_status'] ?? 'pending',
+                'actioned_by' => $i['approved_by_name'] ?? null,
+                'url' => APP_URL . '/index.php?page=investment-view&id=' . $i['id'],
+            ];
+        }
+        
+        foreach ($openingBalances as $b) {
+            $allApprovals[] = [
+                'type' => 'Opening Balance',
+                'reference' => $b['batch_number'],
+                'amount' => (float)$b['total_debit'],
+                'description' => $b['description'] ?? '',
+                'submitted_by' => $b['entered_by_name'] ?? '—',
+                'submitted_at' => $b['submitted_at'],
+                'status' => $b['approval_status'] ?? 'pending',
+                'actioned_by' => $b['approved_by_name'] ?? null,
+                'url' => APP_URL . '/index.php?page=opening-balance-view&id=' . $b['id'],
+            ];
+        }
+        
+        foreach ($loans as $l) {
+            $allApprovals[] = [
+                'type' => 'Loan',
+                'reference' => $l['loan_number'],
+                'amount' => (float)$l['loan_amount'],
+                'description' => ($l['member_first_name'] ?? '') . ' ' . ($l['member_last_name'] ?? ''),
+                'submitted_by' => $l['recorded_by_name'] ?? '—',
+                'submitted_at' => $l['submitted_at'],
+                'status' => $l['approval_status'] ?? 'pending',
+                'actioned_by' => $l['approved_by_name'] ?? null,
+                'url' => APP_URL . '/index.php?page=loan-view&id=' . $l['id'],
+            ];
+        }
+        
+        foreach ($loanApplications as $la) {
+            $allApprovals[] = [
+                'type' => 'Loan Application',
+                'reference' => $la['application_number'],
+                'amount' => (float)$la['requested_amount'],
+                'description' => ($la['member_first_name'] ?? '') . ' ' . ($la['member_last_name'] ?? ''),
+                'submitted_by' => $la['recorded_by_name'] ?? '—',
+                'submitted_at' => $la['submitted_at'],
+                'status' => $la['approval_status'] ?? 'pending',
+                'actioned_by' => $la['approved_by_name'] ?? null,
+                'url' => APP_URL . '/index.php?page=loan-application-view&id=' . $la['id'],
+            ];
+        }
+        
+        // Sort by submission date (newest first)
+        usort($allApprovals, fn($a, $b) => strcmp($b['submitted_at'] ?? '', $a['submitted_at'] ?? ''));
+
+        $this->render('dashboard/approvals', [
+            'pageTitle' => 'Pending Approvals',
+            'allApprovals' => $allApprovals,
+            'counts' => [
+                'vouchers' => count($vouchers),
+                'adjustments' => count($adjustments),
+                'investments' => count($investments),
+                'opening_balances' => count($openingBalances),
+                'loans' => count($loans),
+                'loan_applications' => count($loanApplications),
+            ],
+        ], 'main');
     }
 }

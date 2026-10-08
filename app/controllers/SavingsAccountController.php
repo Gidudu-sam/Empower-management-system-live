@@ -198,6 +198,7 @@ class SavingsAccountController extends Controller
         $this->render('savings-accounts/overview', [
             'pageTitle' => 'Savings Accounts',
             'typeTotals' => $this->accountModel->getAccountTypeTotals(),
+            'monthlyGrowth' => $this->accountModel->getMonthlyGrowth(6),
             'accounts' => $accounts,
             'filters' => compact('type', 'status', 'search'),
             'csrfToken' => $this->getCsrf(),
@@ -1312,6 +1313,15 @@ class SavingsAccountController extends Controller
 
         $openingBalance = $this->accountModel->accountOpeningBalanceAsOf($id, $dateFrom);
         $transactions   = $this->accountModel->getAccountTransactionsInRange($id, $dateFrom, $dateTo);
+        
+        // Calculate running balance for each transaction
+        $runningBalance = $openingBalance;
+        foreach ($transactions as &$tx) {
+            $runningBalance += $tx['credit'] - $tx['debit'];
+            $tx['running_balance'] = $runningBalance;
+        }
+        unset($tx); // Break reference
+        
         $totalCredits   = array_sum(array_column($transactions, 'credit'));
         $totalDebits    = array_sum(array_column($transactions, 'debit'));
         $closingBalance = $openingBalance + $totalCredits - $totalDebits;

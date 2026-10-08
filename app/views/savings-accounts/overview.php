@@ -244,27 +244,17 @@ $typeColors = [
     <div class="row g-3 mb-4">
         <div class="col-lg-8">
             <div class="chart-card">
-                <div class="chart-title">Total Savings Balance</div>
-                <div style="height: 200px; display: flex; align-items: center; justify-content: center; color: var(--slate-soft);">
-                    <div class="text-center">
-                        <i class="bi bi-graph-up" style="font-size: 2.5rem; opacity: 0.25;"></i>
-                        <div style="font-size: .72rem; margin-top: .5rem;">Growth trend</div>
-                    </div>
+                <div class="chart-title">Total Savings Balance Growth</div>
+                <div style="height: 200px; padding: 1rem;">
+                    <canvas id="growthChart"></canvas>
                 </div>
             </div>
         </div>
         <div class="col-lg-4">
             <div class="chart-card">
                 <div class="chart-title">Distribution by Type</div>
-                <div style="height: 200px; display: flex; align-items: center; justify-content: center;">
-                    <div class="text-center">
-                        <div style="font-family: 'Space Grotesk', sans-serif; font-size: 2rem; font-weight: 700; color: var(--ink); font-variant-numeric: tabular-nums;"><?= number_format($grandCount) ?></div>
-                        <div style="font-size: .64rem; color: var(--slate-soft); margin-top: 2px;">Total Accounts</div>
-                        <div style="font-family: 'Space Grotesk', sans-serif; font-size: 1.15rem; font-weight: 600; color: var(--green); margin-top: .75rem; font-variant-numeric: tabular-nums;">
-                            Shs <?= number_format($grandBalance, 0) ?>
-                        </div>
-                        <div style="font-size: .64rem; color: var(--slate-soft);">Total Balance</div>
-                    </div>
+                <div style="height: 200px; padding: 1rem;">
+                    <canvas id="distributionChart"></canvas>
                 </div>
             </div>
         </div>
@@ -371,6 +361,7 @@ $typeColors = [
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script>
     // Shares only the aggregate overview already visible on this page (counts
     // and balances by account type) -- never a per-member list -- so this
@@ -384,4 +375,93 @@ $typeColors = [
         text += '\nTotal: <?= number_format($grandCount) ?> accounts, Shs <?= number_format($grandBalance, 2) ?>';
         window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank');
     }
+
+    // Growth Chart
+    const growthCtx = document.getElementById('growthChart').getContext('2d');
+    new Chart(growthCtx, {
+        type: 'line',
+        data: {
+            labels: <?= json_encode(array_column($monthlyGrowth, 'label')) ?>,
+            datasets: [{
+                label: 'Total Balance',
+                data: <?= json_encode(array_column($monthlyGrowth, 'balance')) ?>,
+                borderColor: '#10B981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 4,
+                pointHoverRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return 'Shs ' + context.parsed.y.toLocaleString();
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return 'Shs ' + (value / 1000000).toFixed(1) + 'M';
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Distribution Chart (Donut)
+    const distributionCtx = document.getElementById('distributionChart').getContext('2d');
+    const typeData = <?= json_encode($typeTotals) ?>;
+    const typeLabels = <?= json_encode($typeLabels) ?>;
+    
+    const distributionLabels = [];
+    const distributionData = [];
+    const distributionColors = ['#1E40AF', '#0E7490', '#7C3AED', '#C2410C', '#B45309'];
+    
+    Object.keys(typeData).forEach((type, index) => {
+        if (typeData[type].count > 0) {
+            distributionLabels.push(typeLabels[type]);
+            distributionData.push(typeData[type].count);
+        }
+    });
+
+    new Chart(distributionCtx, {
+        type: 'doughnut',
+        data: {
+            labels: distributionLabels,
+            datasets: [{
+                data: distributionData,
+                backgroundColor: distributionColors.slice(0, distributionData.length),
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: { padding: 10, font: { size: 10 } }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.label + ': ' + context.parsed + ' accounts';
+                        }
+                    }
+                }
+            }
+        }
+    });
     </script>

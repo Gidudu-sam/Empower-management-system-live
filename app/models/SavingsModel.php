@@ -172,8 +172,8 @@ class SavingsModel extends Model
 
     /**
      * Savings collected in the current "collection week": Monday 11:00 AM
-     * through the following Monday 10:00 AM (based on when the deposit was
-     * actually recorded, not the user-entered transaction_date).
+     * through the following Monday 10:00 AM (based on the user-entered
+     * transaction_date, not when it was recorded).
      */
     public function weekCollections(): array
     {
@@ -182,9 +182,9 @@ class SavingsModel extends Model
         try {
             $stmt = $this->db->prepare(
                 "SELECT COALESCE(SUM(COALESCE(credit,0)-COALESCE(debit,0)),0) FROM `savings`
-                 WHERE created_at >= ? AND created_at < ?"
+                 WHERE transaction_date >= ? AND transaction_date < ?"
             );
-            $stmt->execute([$start->format('Y-m-d H:i:s'), $end->format('Y-m-d H:i:s')]);
+            $stmt->execute([$start->format('Y-m-d'), $end->format('Y-m-d')]);
             $total = (float)$stmt->fetchColumn();
         } catch (PDOException $e) {}
 
@@ -226,11 +226,11 @@ class SavingsModel extends Model
                  WHERE m.status = 'active'
                    AND NOT EXISTS (
                        SELECT 1 FROM `savings` s
-                       WHERE s.member_id = m.id AND s.created_at >= ? AND s.created_at < ?
+                       WHERE s.member_id = m.id AND s.transaction_date >= ? AND s.transaction_date < ?
                    )
                  ORDER BY m.first_name ASC, m.last_name ASC"
             );
-            $stmt->execute([$start->format('Y-m-d H:i:s'), $end->format('Y-m-d H:i:s')]);
+            $stmt->execute([$start->format('Y-m-d'), $end->format('Y-m-d')]);
             return $stmt->fetchAll();
         } catch (PDOException $e) { return []; }
     }

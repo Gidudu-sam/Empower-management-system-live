@@ -72,27 +72,17 @@ if (!function_exists('waNumber')) {
     </span>
 </div>
 
-<?php if ($isChairman && $chairmanOverview !== null): ?>
+<?php if ($isChairman && $chairmanOverview !== null && $chairmanOverview['totalPending'] > 0): ?>
 <!-- ── ACTION REQUIRED (Chairman only) ─────────────────────────── -->
-<div id="pending-approvals" class="card mb-3" style="border-left:4px solid <?= $chairmanOverview['totalPending'] > 0 ? 'var(--gold-deep, #c99a2e)' : 'var(--brand-navy, #0d3b66)' ?>;">
+<div id="pending-approvals" class="card mb-3" style="border-left:4px solid var(--gold-deep, #c99a2e);">
     <div class="card-header d-flex align-items-center justify-content-between py-2">
         <h6 class="mb-0 fw-semibold small">
-            <?php if ($chairmanOverview['totalPending'] > 0): ?>
             <i class="bi bi-bell-fill me-2 text-warning"></i>Action Required
             <span class="badge bg-warning text-dark rounded-pill ms-1"><?= $chairmanOverview['totalPending'] ?></span>
-            <?php else: ?>
-            <i class="bi bi-check2-circle me-2 text-success"></i>Action Required
-            <?php endif; ?>
         </h6>
         <span class="text-muted small">What needs my decision?</span>
     </div>
     <div class="card-body">
-        <?php if ($chairmanOverview['totalPending'] === 0): ?>
-        <div class="text-center text-muted py-3 small">
-            <i class="bi bi-check-circle fs-2 d-block mb-2 opacity-25"></i>
-            Nothing awaiting your approval right now.
-        </div>
-        <?php else: ?>
         <div class="row g-2 mb-3">
             <?php
             $categoryMeta = [
@@ -143,30 +133,22 @@ if (!function_exists('waNumber')) {
                 </tbody>
             </table>
         </div>
-        <?php endif; ?>
     </div>
 </div>
 <?php endif; ?>
 
 <!-- ── Pending Approvals (admin only — Chairman gets the redesigned Action Required panel above) ── -->
 <?php if ($pendingApprovals !== null && !$isChairman): $pendingCount = count($pendingApprovalItems); ?>
+<?php if ($pendingCount > 0): ?>
 <div class="card mb-3" style="border-left:4px solid var(--brand-navy, #0d3b66);">
     <div class="card-header d-flex align-items-center justify-content-between">
         <h6 class="mb-0 fw-semibold">
             <i class="bi bi-check2-square me-2"></i>Pending Approvals
-            <?php if ($pendingCount > 0): ?>
-                <span class="badge bg-primary rounded-pill ms-1"><?= $pendingCount ?></span>
-            <?php endif; ?>
+            <span class="badge bg-primary rounded-pill ms-1"><?= $pendingCount ?></span>
         </h6>
         <span class="text-muted small">What requires my attention?</span>
     </div>
     <div class="card-body p-0">
-        <?php if ($pendingCount === 0): ?>
-            <div class="text-center text-muted py-4 small">
-                <i class="bi bi-check-circle fs-2 d-block mb-2 opacity-25"></i>
-                Nothing awaiting your approval right now.
-            </div>
-        <?php else: ?>
         <div class="table-responsive">
             <table class="table table-hover mb-0 align-middle">
                 <thead>
@@ -193,9 +175,9 @@ if (!function_exists('waNumber')) {
                 </tbody>
             </table>
         </div>
-        <?php endif; ?>
     </div>
 </div>
+<?php endif; ?>
 <?php endif; ?>
 
 <!-- ── Loan alerts ───────────────────────────────────────────── -->
@@ -315,7 +297,7 @@ if (!function_exists('waNumber')) {
 
     <?php if (!$isChairman): ?>
     <div class="<?= $canSeeLoanWidgets ? 'col-xl-3' : 'col-xl-4' ?> col-6 col-lg-4">
-        <a href="<?= APP_URL ?>/index.php?page=savings-accounts&week_filter=current" class="text-decoration-none">
+        <a href="<?= APP_URL ?>/index.php?page=savings&date_from=<?= $weekSavingsCollections['start']->format('Y-m-d') ?>&date_to=<?= $weekSavingsCollections['end']->format('Y-m-d') ?>" class="text-decoration-none">
             <div class="stat-card h-100">
                 <div class="d-flex align-items-center justify-content-between mb-2">
                     <span class="stat-label">This Week's Savings Collections</span>
@@ -976,7 +958,7 @@ if (!function_exists('waNumber')) {
                                     </a>
                                 </td>
                                 <td class="text-muted small"><?= htmlspecialchars($topShareholder['member_number']) ?></td>
-                                <td class="text-end pe-3 fw-bold text-info"><?= number_format($topShareholder['total_retained'], 2) ?></td>
+                                <td class="text-end pe-3 fw-bold text-info"><?= number_format($topShareholder['total_capital'], 2) ?></td>
                                 <?php else: ?>
                                 <td colspan="3" class="text-muted small">No shares data yet.</td>
                                 <?php endif; ?>
@@ -1501,4 +1483,104 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 300);
     });
 });
+</script>
+
+
+<!-- Auto-refresh approval count -->
+<script>
+(function() {
+    const approvalCard = document.getElementById('pending-approvals');
+    if (!approvalCard) return; // Only run if approval card exists initially
+    
+    let lastKnownCount = <?= $chairmanOverview['totalPending'] ?? 0 ?>;
+    let isFirstCheck = true;
+    
+    function checkForNewApprovals() {
+        fetch('<?= APP_URL ?>/index.php?page=dashboard-approval-count')
+            .then(response => response.json())
+            .then(data => {
+                const newCount = data.count || 0;
+                
+                // If count changed
+                if (newCount !== lastKnownCount) {
+                    // If count increased, show notification
+                    if (newCount > lastKnownCount && !isFirstCheck) {
+                        showNotification(newCount - lastKnownCount);
+                    }
+                    
+                    // Update or hide card based on count
+                    if (newCount === 0) {
+                        // Hide card with fade animation
+                        approvalCard.style.transition = 'opacity 0.3s ease';
+                        approvalCard.style.opacity = '0';
+                        setTimeout(() => {
+                            approvalCard.style.display = 'none';
+                        }, 300);
+                    } else if (lastKnownCount === 0) {
+                        // Show card (was hidden, now has items)
+                        window.location.reload(); // Full reload to render items
+                    } else {
+                        // Just update the badge count
+                        const badge = approvalCard.querySelector('.badge');
+                        if (badge) {
+                            badge.textContent = newCount;
+                            // Pulse animation
+                            badge.style.animation = 'pulse 0.5s ease';
+                            setTimeout(() => {
+                                badge.style.animation = '';
+                            }, 500);
+                        }
+                    }
+                    
+                    lastKnownCount = newCount;
+                }
+                
+                isFirstCheck = false;
+            })
+            .catch(error => {
+                console.log('Approval check failed:', error);
+            });
+    }
+    
+    function showNotification(newItems) {
+        // Create toast notification
+        const notification = document.createElement('div');
+        notification.className = 'alert alert-warning position-fixed top-0 end-0 m-3';
+        notification.style.zIndex = '9999';
+        notification.style.minWidth = '300px';
+        notification.innerHTML = `
+            <div class="d-flex align-items-center">
+                <i class="bi bi-bell-fill me-2 fs-5"></i>
+                <div>
+                    <strong>New Approval${newItems > 1 ? 's' : ''} Required</strong>
+                    <div class="small">${newItems} new item${newItems > 1 ? 's' : ''} awaiting your decision</div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        // Auto-dismiss after 5 seconds
+        setTimeout(() => {
+            notification.style.transition = 'opacity 0.3s ease';
+            notification.style.opacity = '0';
+            setTimeout(() => {
+                notification.remove();
+            }, 300);
+        }, 5000);
+    }
+    
+    // Check every 30 seconds
+    setInterval(checkForNewApprovals, 30000);
+    
+    // Add pulse animation CSS
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+    `;
+    document.head.appendChild(style);
+})();
 </script>

@@ -38,6 +38,7 @@ class NotificationController extends Controller
         'fixed_deposit_closure' => 'Fixed Deposit Closure',
         'savings_closure'       => 'Savings Account Closure',
         'member_fee'            => 'Fees & Charges',
+        'member'                => 'Member Birthdays',
         'system'                => 'System',
     ];
 
@@ -81,6 +82,7 @@ class NotificationController extends Controller
         // Generate fresh loan notifications
         $this->model->generateLoanNotifications();
         $this->model->generateFixedDepositMaturityNotifications();
+        $this->model->generateBirthdayNotifications();
 
         $result = $this->model->search($userId, $filter, $refType, $page, 20);
 

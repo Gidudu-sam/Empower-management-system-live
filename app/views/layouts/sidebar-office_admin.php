@@ -173,6 +173,12 @@
 </a>
 <?php endif; ?>
 
+<!-- ── BIRTHDAYS ──────────────────────────────────────────── -->
+<a class="nav-link <?= isActive('birthday-dashboard') ?>" href="<?= APP_URL ?>/index.php?page=birthday-dashboard">
+    <div class="sb-nav-link-icon"><i class="bi bi-calendar-heart"></i></div>
+    Member Birthdays
+</a>
+
 <!-- ── REPORTS ────────────────────────────────────────────── -->
 <?php if ($canSeeReports): ?>
 <div class="sb-sidenav-menu-heading">Reports</div>

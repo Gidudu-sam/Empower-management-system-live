@@ -654,6 +654,70 @@ class NotificationModel extends Model
     }
 
     // ================================================================
+    // BIRTHDAY NOTIFICATIONS
+    // ================================================================
+
+    /**
+     * Generate birthday notifications for today's birthdays.
+     * Notifies office_admin, admin, and system_admin roles.
+     * Uses unique_event_key to prevent duplicate notifications for the same birthday in the same year.
+     */
+    public function generateBirthdayNotifications(): int
+    {
+        $today = date('m-d'); // Format: MM-DD
+        $year = date('Y');
+        
+        try {
+            // Find members with birthdays today (active members with non-null DOB)
+            $stmt = $this->db->prepare(
+                "SELECT id, first_name, last_name, date_of_birth 
+                 FROM members 
+                 WHERE status = 'active' 
+                 AND date_of_birth IS NOT NULL
+                 AND DATE_FORMAT(date_of_birth, '%m-%d') = ?"
+            );
+            $stmt->execute([$today]);
+            $members = $stmt->fetchAll();
+            
+            if (empty($members)) {
+                return 0; // No birthdays today
+            }
+            
+            $created = 0;
+            foreach ($members as $member) {
+                $name = trim($member['first_name'] . ' ' . $member['last_name']);
+                $title = "🎂 Birthday Today: {$name}";
+                $message = "{$name} is celebrating their birthday today. Consider sending birthday wishes!";
+                
+                // Unique key to prevent duplicate notifications for same member in same year
+                $uniqueKey = "birthday:member:{$member['id']}:year:{$year}";
+                
+                $created += $this->notifyRoles(
+                    ['office_admin', 'admin', 'system_admin'],
+                    $title,
+                    $message,
+                    'info',
+                    'member',
+                    (int)$member['id'],
+                    [
+                        'priority' => 'normal',
+                        'member_id' => (int)$member['id'],
+                        'action_url' => '/index.php?page=birthday-dashboard',
+                        'event_date' => date('Y-m-d'),
+                    ],
+                    $uniqueKey
+                );
+            }
+            
+            return $created;
+            
+        } catch (PDOException $e) {
+            $this->log(0, 'birthday_notification_error', 'Birthday notification generation failed: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    // ================================================================
     // ACTIVITY LOG
     // ================================================================
 

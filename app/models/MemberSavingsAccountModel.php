@@ -587,6 +587,26 @@ class MemberSavingsAccountModel extends Model
         return $totals;
     }
 
+    /**
+     * Get monthly savings balance growth for the last N months
+     */
+    public function getMonthlyGrowth(int $months = 6): array
+    {
+        $stmt = $this->db->prepare("
+            SELECT 
+                DATE_FORMAT(s.transaction_date, '%Y-%m') AS month,
+                DATE_FORMAT(s.transaction_date, '%b %Y') AS label,
+                COALESCE(SUM(COALESCE(s.credit,0)-COALESCE(s.debit,0)), 0) AS balance
+            FROM `savings` s
+            WHERE s.transaction_date >= DATE_SUB(CURDATE(), INTERVAL ? MONTH)
+              AND s.savings_account_id IS NOT NULL
+            GROUP BY month, label
+            ORDER BY month ASC
+        ");
+        $stmt->execute([$months]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     public function getMemberSavingsSummary(int $memberId): array
     {
         $accounts = $this->getMemberAccounts($memberId);

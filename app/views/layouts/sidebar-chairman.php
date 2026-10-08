@@ -26,7 +26,7 @@
 ?>
 <!-- ── APPROVALS ──────────────────────────────────────────── -->
 <div class="sb-sidenav-menu-heading">Approvals</div>
-<a class="nav-link <?= isActive('dashboard') ?>" href="<?= APP_URL ?>/index.php?page=dashboard#pending-approvals">
+<a class="nav-link <?= isActive('pending-approvals') ?>" href="<?= APP_URL ?>/index.php?page=pending-approvals">
     <div class="sb-nav-link-icon"><i class="bi bi-check2-square"></i></div>
     Pending Approvals
 </a>

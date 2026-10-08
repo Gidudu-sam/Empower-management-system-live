@@ -27,7 +27,7 @@ $methods = ['Cash', 'Airtel Money', 'MTN Mobile Money', 'Bank Transfer', 'Cheque
     <?php endif; ?>
 
     <div class="row justify-content-center">
-        <div class="col-12 col-lg-8">
+        <div class="col-12 col-xl-10">
 
             <!-- ── STEP 1: FIND MEMBER + ACCOUNT ─────────────────────────── -->
             <div class="card mb-3">
@@ -74,23 +74,28 @@ $methods = ['Cash', 'Airtel Money', 'MTN Mobile Money', 'Bank Transfer', 'Cheque
             </div>
 
             <!-- ── STEP 2: RECORD DEPOSIT (revealed once an account is picked) ── -->
-            <div class="card" id="depositCard" style="display:none;">
-                <div class="card-header">
-                    <i class="bi bi-plus-circle me-2"></i>Record Deposit — <span id="depositAccountNumber"></span>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-secondary small d-flex justify-content-between">
-                        <span>Account Type</span>
-                        <strong id="depositAccountType"></strong>
-                    </div>
-                    <div class="alert alert-secondary small d-flex justify-content-between">
-                        <span>Current Balance</span>
-                        <strong id="depositAccountBalance"></strong>
-                    </div>
+            <!-- Updated layout: Form left, Preview right (v2026-10-08-15:00) -->
+            <div id="depositCard" style="display:none;">
+                <div class="row g-3">
+                    <!-- LEFT: Form -->
+                    <div class="col-lg-7">
+                        <div class="card">
+                            <div class="card-header">
+                                <i class="bi bi-plus-circle me-2"></i>Record Deposit — <span id="depositAccountNumber"></span>
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-secondary small d-flex justify-content-between">
+                                    <span>Account Type</span>
+                                    <strong id="depositAccountType"></strong>
+                                </div>
+                                <div class="alert alert-secondary small d-flex justify-content-between">
+                                    <span>Current Balance</span>
+                                    <strong id="depositAccountBalance"></strong>
+                                </div>
 
-                    <?php if (!$canDeposit): ?>
-                    <div class="alert alert-warning small mb-0">You do not have permission to record a deposit — contact an Admin, Treasurer, or Cashier.</div>
-                    <?php else: ?>
+                                <?php if (!$canDeposit): ?>
+                                <div class="alert alert-warning small mb-0">You do not have permission to record a deposit — contact an Admin, Treasurer, or Cashier.</div>
+                                <?php else: ?>
                     <form method="POST" action="<?= $base ?>?page=savings-account-deposit-store" id="depositForm">
                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
                         <input type="hidden" name="account_id" id="depositAccountId" value="">
@@ -136,14 +141,63 @@ $methods = ['Cash', 'Airtel Money', 'MTN Mobile Money', 'Bank Transfer', 'Cheque
                             </div>
                         </div>
 
-                        <div class="d-flex gap-2 mt-4">
-                            <button type="submit" class="btn btn-primary">Record Deposit</button>
-                            <button type="button" class="btn btn-secondary" id="changeAccountBtn">
-                                <i class="bi bi-arrow-left me-1"></i>Change Account
-                            </button>
+                                <div class="d-flex gap-2 mt-4">
+                                    <button type="submit" class="btn btn-primary">Record Deposit</button>
+                                    <button type="button" class="btn btn-secondary" id="changeAccountBtn">
+                                        <i class="bi bi-arrow-left me-1"></i>Change Account
+                                    </button>
+                                </div>
+                                </form>
+                                <?php endif; ?>
+                            </div>
                         </div>
-                    </form>
-                    <?php endif; ?>
+                    </div>
+
+                    <!-- RIGHT: Live Preview Card -->
+                    <div class="col-lg-5">
+                        <div class="card" style="background: linear-gradient(135deg, #FFF8E1 0%, #FFFBF0 100%); border: 1px solid #FFE082; position: sticky; top: 20px;">
+                            <div class="card-body">
+                                <h6 class="mb-3" style="color: #895A00;">
+                                    <i class="bi bi-eye-fill me-2"></i>Live Deposit Preview
+                                </h6>
+                                
+                                <dl class="row mb-0 small">
+                                    <dt class="col-5 text-muted">Member</dt>
+                                    <dd class="col-7 fw-semibold" id="previewMemberName">—</dd>
+                                    
+                                    <dt class="col-5 text-muted">Account</dt>
+                                    <dd class="col-7 fw-semibold" id="previewAccountNumber">—</dd>
+                                    
+                                    <dt class="col-5 text-muted">Account Type</dt>
+                                    <dd class="col-7" id="previewAccountType">—</dd>
+                                    
+                                    <hr class="my-2">
+                                    
+                                    <dt class="col-5 text-muted">Current Balance</dt>
+                                    <dd class="col-7 fw-semibold" id="previewCurrentBalance">Shs 0.00</dd>
+                                    
+                                    <dt class="col-5 text-muted">Deposit Amount</dt>
+                                    <dd class="col-7 fw-bold text-success" id="previewDepositAmount">Shs 0.00</dd>
+                                    
+                                    <hr class="my-2" style="border-top: 2px solid #FFE082;">
+                                    
+                                    <dt class="col-5 text-muted">New Balance</dt>
+                                    <dd class="col-7 fw-bold fs-5" style="color: #2E7D32;" id="previewNewBalance">Shs 0.00</dd>
+                                    
+                                    <hr class="my-2">
+                                    
+                                    <dt class="col-5 text-muted">Payment Method</dt>
+                                    <dd class="col-7" id="previewPaymentMethod">Cash</dd>
+                                    
+                                    <dt class="col-5 text-muted">Transaction Date</dt>
+                                    <dd class="col-7" id="previewTransactionDate"><?= date('d M Y') ?></dd>
+                                    
+                                    <dt class="col-5 text-muted" id="previewRefLabel" style="display:none;">Reference</dt>
+                                    <dd class="col-7" id="previewReference" style="display:none;">—</dd>
+                                </dl>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -310,5 +364,118 @@ loadAccounts(<?= (int)$preselectedMember['id'] ?>);
     }
     methodSel.addEventListener('change', toggle);
     toggle();
+})();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// LIVE PREVIEW CARD - Updates as user fills the form
+// ─────────────────────────────────────────────────────────────────────────────
+(function () {
+    const form = document.getElementById('depositForm');
+    if (!form) return;
+    
+    let currentBalance = 0;
+    let memberName = '';
+    let accountNumber = '';
+    let accountType = '';
+    
+    const amountInput = form.querySelector('input[name="amount"]');
+    const paymentMethodSelect = form.querySelector('select[name="payment_method"]');
+    const transactionDateInput = form.querySelector('input[name="transaction_date"]');
+    const referenceInput = form.querySelector('input[name="reference_number"]');
+    
+    function formatCurrency(amount) {
+        return 'Shs ' + Number(amount).toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+    }
+    
+    function formatDate(dateStr) {
+        if (!dateStr) return '—';
+        const d = new Date(dateStr + 'T00:00:00');
+        return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+    
+    function updatePreview() {
+        const amount = parseFloat(amountInput.value) || 0;
+        const newBalance = currentBalance + amount;
+        const paymentMethod = paymentMethodSelect.value;
+        const transactionDate = transactionDateInput.value;
+        const reference = referenceInput ? referenceInput.value.trim() : '';
+        
+        // Update amounts
+        document.getElementById('previewDepositAmount').textContent = formatCurrency(amount);
+        document.getElementById('previewNewBalance').textContent = formatCurrency(newBalance);
+        
+        // Update payment method
+        document.getElementById('previewPaymentMethod').textContent = paymentMethod || '—';
+        
+        // Update transaction date
+        document.getElementById('previewTransactionDate').textContent = formatDate(transactionDate);
+        
+        // Show/hide reference based on payment method and input
+        const refLabel = document.getElementById('previewRefLabel');
+        const refValue = document.getElementById('previewReference');
+        if (paymentMethod !== 'Cash' && reference) {
+            refLabel.style.display = '';
+            refValue.style.display = '';
+            refValue.textContent = reference;
+        } else {
+            refLabel.style.display = 'none';
+            refValue.style.display = 'none';
+        }
+        
+        // Highlight new balance with animation
+        const newBalanceEl = document.getElementById('previewNewBalance');
+        if (amount > 0) {
+            newBalanceEl.style.transform = 'scale(1.05)';
+            setTimeout(() => {
+                newBalanceEl.style.transform = 'scale(1)';
+            }, 200);
+        }
+    }
+    
+    // Add transition for smooth animations
+    document.getElementById('previewNewBalance').style.transition = 'transform 0.2s ease';
+    
+    // Listen to form changes
+    if (amountInput) amountInput.addEventListener('input', updatePreview);
+    if (paymentMethodSelect) paymentMethodSelect.addEventListener('change', updatePreview);
+    if (transactionDateInput) transactionDateInput.addEventListener('change', updatePreview);
+    if (referenceInput) referenceInput.addEventListener('input', updatePreview);
+    
+    // Store the original selectAccount function
+    const originalSelectAccount = window.selectAccount;
+    
+    // Override selectAccount to capture account details for preview
+    window.selectAccount = function(a, balanceFormatted) {
+        // Call original function
+        originalSelectAccount(a, balanceFormatted);
+        
+        // Extract numeric balance from formatted string
+        const balanceStr = balanceFormatted.replace(/[^0-9.-]/g, '');
+        currentBalance = parseFloat(balanceStr) || 0;
+        accountNumber = a.account_number || '—';
+        accountType = a.account_type || '—';
+        
+        // Get member name from search input or preselected banner
+        const searchInput = document.getElementById('memberSearch').value;
+        const preselectedBanner = document.getElementById('preselectedMemberBanner');
+        if (preselectedBanner && preselectedBanner.style.display !== 'none') {
+            const nameEl = preselectedBanner.querySelector('.fw-semibold');
+            memberName = nameEl ? nameEl.textContent : searchInput;
+        } else {
+            memberName = searchInput || '—';
+        }
+        
+        // Update preview card static values
+        document.getElementById('previewMemberName').textContent = memberName;
+        document.getElementById('previewAccountNumber').textContent = accountNumber;
+        document.getElementById('previewAccountType').textContent = accountType;
+        document.getElementById('previewCurrentBalance').textContent = formatCurrency(currentBalance);
+        
+        // Reset and update dynamic values
+        updatePreview();
+    };
 })();
 </script>
