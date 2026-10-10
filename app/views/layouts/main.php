@@ -6,9 +6,11 @@
     <title><?= htmlspecialchars($pageTitle ?? APP_NAME) ?></title>
 
     <!-- Favicon -->
-    <link rel="icon" type="image/png" sizes="32x32" href="<?= APP_URL ?>/public/images/logo.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="<?= APP_URL ?>/public/images/logo.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="<?= APP_URL ?>/public/images/logo.png">
+    <link rel="icon" type="image/svg+xml" href="<?= APP_URL ?>/public/favicon.svg">
+    <link rel="icon" type="image/png" sizes="32x32" href="<?= APP_URL ?>/public/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="<?= APP_URL ?>/public/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="<?= APP_URL ?>/public/apple-touch-icon.png">
+    <link rel="manifest" href="<?= APP_URL ?>/manifest.json">
 
     <!-- Google Fonts: Space Grotesk + Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
