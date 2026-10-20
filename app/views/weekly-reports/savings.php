@@ -1,4 +1,5 @@
 <?php
+header('Content-Type: text/html; charset=utf-8');
 $base = APP_URL . '/index.php';
 // Only prepend Mr./Ms. for an actual individual member -- a group/chama
 // entry (e.g. "The Alphas") has no meaningful gender and must be shown as-is.
@@ -219,7 +220,8 @@ function generateAdminsReportText() {
         membersData.forEach((member, i) => {
             const amount = Math.round(member.amount).toLocaleString('en-US');
             const paymentIcon = formatPaymentMethod(member.payment_methods);
-            text += (i + 1) + '. ' + member.name + ' ' + amount + '/=✅(' + paymentIcon + ')\n';
+            // Simple format without emoji - works on all systems
+            text += (i + 1) + '. ' + member.name + ' ' + amount + '/= (' + paymentIcon + ')\n';
         });
     }
 
