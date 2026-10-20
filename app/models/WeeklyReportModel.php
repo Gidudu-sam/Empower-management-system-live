@@ -57,6 +57,7 @@ class WeeklyReportModel extends Model
 
     /**
      * Get unique members who saved during the specified week.
+     * Now includes payment methods breakdown.
      */
     public function getWeeklySavingsDeposits(string $weekStart, string $weekEnd): array
     {
@@ -65,7 +66,8 @@ class WeeklyReportModel extends Model
                 "SELECT m.id, m.first_name, m.last_name, m.member_number, m.gender,
                         SUM(COALESCE(s.credit,0)-COALESCE(s.debit,0)) AS total_deposited,
                         COUNT(s.id) AS deposit_count,
-                        MAX(s.transaction_date) AS last_deposit_date
+                        MAX(s.transaction_date) AS last_deposit_date,
+                        GROUP_CONCAT(DISTINCT s.payment_method ORDER BY s.payment_method SEPARATOR ', ') AS payment_methods
                  FROM savings s
                  JOIN members m ON m.id = s.member_id
                  WHERE s.transaction_date BETWEEN ? AND ?

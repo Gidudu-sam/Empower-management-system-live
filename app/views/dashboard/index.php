@@ -252,6 +252,60 @@ if (!function_exists('waNumber')) {
         <?php endif; ?>
     </div>
 
+    <?php if ($isChairman && isset($chairmanOverview['collections'])): ?>
+    <div class="col-xl-4 col-6 col-lg-4">
+        <a href="<?= APP_URL ?>/index.php?page=savings&date_from=<?= $chairmanOverview['collections']['weekStart']->format('Y-m-d') ?>&date_to=<?= $chairmanOverview['collections']['weekEnd']->format('Y-m-d') ?>" class="text-decoration-none">
+            <div class="stat-card h-100">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="stat-label">This Week's Collections</span>
+                    <span class="stat-dot stat-dot-green"></span>
+                </div>
+                <div class="stat-value" style="font-size:1.2rem"><span style="font-size:.75rem;color:var(--slate-soft);font-weight:500;">Shs</span> <?= number_format($chairmanOverview['collections']['weekTotal'], 0) ?></div>
+                <div class="stat-sub"><?= $chairmanOverview['collections']['weekStart']->format('D g:i A') ?> – <?= $chairmanOverview['collections']['weekEnd']->format('D g:i A') ?></div>
+            </div>
+        </a>
+    </div>
+
+    <div class="col-xl-4 col-6 col-lg-4">
+        <a href="<?= APP_URL ?>/index.php?page=savings" class="text-decoration-none">
+            <div class="stat-card h-100">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="stat-label">This Month's Collections</span>
+                    <span class="stat-dot stat-dot-green"></span>
+                </div>
+                <div class="stat-value" style="font-size:1.2rem"><span style="font-size:.75rem;color:var(--slate-soft);font-weight:500;">Shs</span> <?= number_format($chairmanOverview['collections']['monthTotal'], 0) ?></div>
+                <div class="stat-sub"><?= date('F Y') ?></div>
+            </div>
+        </a>
+    </div>
+    <?php elseif (!$isChairman && isset($collectionsOverview)): ?>
+    <div class="<?= $canSeeLoanWidgets ? 'col-xl-3' : 'col-xl-4' ?> col-6 col-lg-4">
+        <a href="<?= APP_URL ?>/index.php?page=savings&date_from=<?= $collectionsOverview['weekStart']->format('Y-m-d') ?>&date_to=<?= $collectionsOverview['weekEnd']->format('Y-m-d') ?>" class="text-decoration-none">
+            <div class="stat-card h-100">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="stat-label">This Week's Collections</span>
+                    <span class="stat-dot stat-dot-green"></span>
+                </div>
+                <div class="stat-value" style="font-size:1.2rem"><span style="font-size:.75rem;color:var(--slate-soft);font-weight:500;">Shs</span> <?= number_format($collectionsOverview['weekTotal'], 0) ?></div>
+                <div class="stat-sub"><?= $collectionsOverview['weekStart']->format('D g:i A') ?> – <?= $collectionsOverview['weekEnd']->format('D g:i A') ?></div>
+            </div>
+        </a>
+    </div>
+
+    <div class="<?= $canSeeLoanWidgets ? 'col-xl-3' : 'col-xl-4' ?> col-6 col-lg-4">
+        <a href="<?= APP_URL ?>/index.php?page=savings" class="text-decoration-none">
+            <div class="stat-card h-100">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="stat-label">This Month's Collections</span>
+                    <span class="stat-dot stat-dot-green"></span>
+                </div>
+                <div class="stat-value" style="font-size:1.2rem"><span style="font-size:.75rem;color:var(--slate-soft);font-weight:500;">Shs</span> <?= number_format($collectionsOverview['monthTotal'], 0) ?></div>
+                <div class="stat-sub"><?= date('F Y') ?></div>
+            </div>
+        </a>
+    </div>
+    <?php endif; ?>
+
     <?php if ($canSeeMemberFollowUp): ?>
     <div class="<?= $isChairman ? 'col-xl-4' : ($canSeeLoanWidgets ? 'col-xl-3' : 'col-xl-4') ?> col-6 col-lg-4">
         <a href="<?= APP_URL ?>/index.php?page=members&status=active" class="text-decoration-none">
@@ -310,8 +364,13 @@ if (!function_exists('waNumber')) {
     </div>
     <?php endif; ?>
 
-    <?php if ($canSeeMemberFollowUp && !$isChairman): ?>
-    <div class="<?= $canSeeLoanWidgets ? 'col-xl-3' : 'col-xl-4' ?> col-6 col-lg-4">
+    <?php 
+    // "Not Saved This Week" card - shown to operational/member-facing roles
+    // Excluded: Secretary and Vice Chairman (governance roles, not operational collections)
+    $canSeeNotSavedCard = Session::hasRole(['admin', 'treasurer', 'cashier', 'office_admin', 'loans_officer', 'chairman']);
+    ?>
+    <?php if ($canSeeNotSavedCard): ?>
+    <div class="<?= $isChairman ? 'col-xl-4' : ($canSeeLoanWidgets ? 'col-xl-3' : 'col-xl-4') ?> col-6 col-lg-4">
         <a href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#notSavedModal" class="text-decoration-none">
             <div class="stat-card h-100">
                 <div class="d-flex align-items-center justify-content-between mb-2">

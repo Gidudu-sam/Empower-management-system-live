@@ -31,7 +31,7 @@ $waLabel = $waStart->format('j') . ordinalSuffix((int)$waStart->format('j'))
         </p>
     </div>
     <div class="d-flex gap-2 flex-wrap no-print">
-        <a href="<?= $base ?>?page=weekly-savings" class="btn btn-outline-secondary btn-sm <?= !isset($_GET['week']) ? 'active' : '' ?>">This Week</a>
+        <a href="<?= $base ?>?page=weekly-savings" class="btn btn-sm <?= !isset($_GET['week']) ? 'btn-primary' : 'btn-outline-secondary' ?>" style="<?= !isset($_GET['week']) ? 'background-color:var(--brand-navy,#0d3b66) !important;color:#fff !important;' : '' ?>">This Week</a>
     </div>
 </div>
 
@@ -104,7 +104,12 @@ $waLabel = $waStart->format('j') . ordinalSuffix((int)$waStart->format('j'))
 <!-- Action Buttons -->
 <div class="d-flex gap-2 flex-wrap mb-3 no-print">
     <button onclick="copyReport()" class="btn btn-outline-primary btn-sm"><i class="bi bi-clipboard me-1"></i>Copy to Clipboard</button>
-    <button onclick="shareWhatsApp()" class="btn btn-sm" style="background:#25D366;color:#fff;border:none;"><i class="bi bi-whatsapp me-1"></i>Share to WhatsApp</button>
+    <button onclick="shareWhatsAppMembers()" class="btn btn-sm whatsapp-btn-members" style="background-color:#25D366 !important;color:#fff !important;border:none !important;">
+        <i class="bi bi-whatsapp me-1" style="color:#fff !important;"></i>Share to Members Group
+    </button>
+    <button onclick="shareWhatsAppAdmins()" class="btn btn-sm whatsapp-btn-admins" style="background-color:#128C7E !important;color:#fff !important;border:none !important;">
+        <i class="bi bi-whatsapp me-1" style="color:#fff !important;"></i>Share to Admins Group
+    </button>
     <button onclick="window.print()" class="btn btn-outline-secondary btn-sm"><i class="bi bi-printer me-1"></i>Print Report</button>
     <button onclick="exportCSV()" class="btn btn-outline-success btn-sm"><i class="bi bi-file-earmark-excel me-1"></i>Export Excel</button>
 </div>
@@ -165,19 +170,65 @@ $waLabel = $waStart->format('j') . ordinalSuffix((int)$waStart->format('j'))
 </div>
 
 <script>
-// Generate the plain-text report (WhatsApp share format)
-function generateReportText() {
+// Helper function to format payment method for display
+function formatPaymentMethod(paymentMethod) {
+    if (!paymentMethod || paymentMethod === 'Other') return 'cash';
+    // Convert "MTN Mobile Money", "Airtel Money", etc. to "phone"
+    if (paymentMethod.toLowerCase().includes('money') || paymentMethod.toLowerCase().includes('mobile')) {
+        return 'phone';
+    }
+    return 'cash';
+}
+
+// Generate the simple report (for members group) - names only
+function generateMembersReportText() {
     const waLabel = <?= json_encode($waLabel) ?>;
     const members = <?= json_encode(array_map(function($m) use ($title) { return $title($m); }, $members)) ?>;
 
     let text = '*' + waLabel + '*\n\n';
     text += '*SAVING DEPOSITS LIST*\n\n';
 
-    members.forEach((name, i) => {
-        text += (i + 1) + '. ' + name + '\n';
-    });
+    if (!members || members.length === 0) {
+        text += 'No savings recorded this week.\n';
+    } else {
+        members.forEach((name, i) => {
+            text += (i + 1) + '. ' + name + '\n';
+        });
+    }
 
     return text;
+}
+
+// Generate the detailed report (for admins group) - names, amounts, payment methods
+function generateAdminsReportText() {
+    const waLabel = <?= json_encode($waLabel) ?>;
+    const membersData = <?= json_encode(array_map(function($m) use ($title) {
+        return [
+            'name' => $title($m),
+            'amount' => (float)$m['total_deposited'],
+            'payment_methods' => $m['payment_methods'] ?? 'Cash'
+        ];
+    }, $members)) ?>;
+
+    let text = '*' + waLabel + '*\n\n';
+    text += '*SAVING DEPOSITS LIST*\n\n';
+
+    if (!membersData || membersData.length === 0) {
+        text += 'No savings recorded this week.\n';
+    } else {
+        membersData.forEach((member, i) => {
+            const amount = Math.round(member.amount).toLocaleString('en-US');
+            const paymentIcon = formatPaymentMethod(member.payment_methods);
+            text += (i + 1) + '. ' + member.name + ' ' + amount + '/=✅(' + paymentIcon + ')\n';
+        });
+    }
+
+    return text;
+}
+
+// Generate the plain-text report (WhatsApp share format) - backward compatibility
+function generateReportText() {
+    return generateMembersReportText();
 }
 
 // Copy to clipboard
@@ -185,14 +236,41 @@ function copyReport() {
     const text = generateReportText();
     navigator.clipboard.writeText(text).then(() => {
         showToast('Report copied to clipboard!');
+    }).catch(err => {
+        console.error('Copy failed:', err);
+        alert('Failed to copy to clipboard');
     });
 }
 
-// Share to WhatsApp
+// Share to WhatsApp - Members Group (simple format)
+function shareWhatsAppMembers() {
+    try {
+        const text = generateMembersReportText();
+        const encoded = encodeURIComponent(text);
+        const url = 'https://wa.me/?text=' + encoded;
+        window.open(url, '_blank');
+    } catch (error) {
+        console.error('Error sharing to members:', error);
+        alert('Error generating WhatsApp message: ' + error.message);
+    }
+}
+
+// Share to WhatsApp - Admins Group (detailed format)
+function shareWhatsAppAdmins() {
+    try {
+        const text = generateAdminsReportText();
+        const encoded = encodeURIComponent(text);
+        const url = 'https://wa.me/?text=' + encoded;
+        window.open(url, '_blank');
+    } catch (error) {
+        console.error('Error sharing to admins:', error);
+        alert('Error generating WhatsApp message: ' + error.message);
+    }
+}
+
+// Share to WhatsApp (backward compatibility - uses members format)
 function shareWhatsApp() {
-    const text = generateReportText();
-    const encoded = encodeURIComponent(text);
-    window.open('https://wa.me/?text=' + encoded, '_blank');
+    shareWhatsAppMembers();
 }
 
 // Export CSV
@@ -224,5 +302,30 @@ function showToast(msg) {
 @media print {
     .no-print { display: none !important; }
     .card { border: 1px solid #ddd; box-shadow: none; }
+}
+
+/* WhatsApp button styling */
+.whatsapp-btn-members {
+    background-color: #25D366 !important;
+    color: #ffffff !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.whatsapp-btn-members:hover {
+    background-color: #1da851 !important;
+    color: #ffffff !important;
+}
+
+.whatsapp-btn-admins {
+    background-color: #128C7E !important;
+    color: #ffffff !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.whatsapp-btn-admins:hover {
+    background-color: #0d7a6f !important;
+    color: #ffffff !important;
 }
 </style>

@@ -281,7 +281,25 @@ class DashboardController extends Controller
         // Stage 23: Vice Chairman shares this governance-shaped overview
         // identically with Chairman (full deputy parity) -- reusing this
         // exact block rather than a parallel copy.
+        // Collections overview: added for Chairman, Vice Chairman, Treasurer,
+        // Secretary, Office Admin, and Cashier to provide weekly/monthly
+        // financial activity oversight.
         $chairmanOverview = null;
+        $collectionsOverview = null;
+        
+        // Calculate collections for roles that need this oversight
+        if (Session::hasRole(['chairman', 'vice_chairman', 'treasurer', 'secretary', 'office_admin', 'cashier'])) {
+            $weekCollections = $savingsModel->weekCollections();
+            $monthCollections = $savingsModel->monthTotal();
+            
+            $collectionsOverview = [
+                'weekTotal'  => $weekCollections['total'],
+                'weekStart'  => $weekCollections['start'],
+                'weekEnd'    => $weekCollections['end'],
+                'monthTotal' => $monthCollections,
+            ];
+        }
+        
         if (Session::hasRole(['chairman', 'vice_chairman'])) {
             require_once APP_PATH . '/models/SettingsModel.php';
             $settingsModel = new SettingsModel();
@@ -310,6 +328,7 @@ class DashboardController extends Controller
                     'overdue'          => $overdueLoansCount,
                     'outstanding'      => $outstandingLoans,
                 ],
+                'collections'       => $collectionsOverview,
                 'health' => [
                     // Real thresholds, not invented drama: any overdue
                     // loan at all is flagged; pending approvals are
@@ -329,6 +348,7 @@ class DashboardController extends Controller
         $this->render('dashboard/index', [
             'pageTitle'              => 'Dashboard — ' . APP_NAME,
             'chairmanOverview'       => $chairmanOverview,
+            'collectionsOverview'    => $collectionsOverview,
             'userRole'               => $role,
             'quickActions'           => $this->quickActionsFor($role),
             'pendingApprovals'       => $pendingApprovals,

@@ -114,9 +114,25 @@ $base = APP_URL . '/index.php';
                 $email     = htmlspecialchars($m['email'] ?? '');
                 $phone     = htmlspecialchars($m['phone'] ?? '');
                 
-                // WhatsApp message
-                $whatsappMsg = urlencode("🎉 Happy Birthday, {$firstName}! 🎂\n\nWishing you a wonderful day filled with joy and happiness. May this year bring you success, good health, and prosperity.\n\nFrom all of us at " . APP_NAME . "! 🎈");
-                $whatsappLink = "https://wa.me/" . preg_replace('/[^0-9]/', '', $phone) . "?text=" . $whatsappMsg;
+                // WhatsApp phone normalization (add Uganda country code 256)
+                $waPhone = preg_replace('/\D+/', '', $phone); // Remove non-digits
+                if ($waPhone !== '') {
+                    if (str_starts_with($waPhone, '256')) {
+                        $waPhone = substr($waPhone, 0, 12); // Already has country code
+                    } elseif (str_starts_with($waPhone, '0')) {
+                        $waPhone = '256' . substr($waPhone, 1, 9); // Remove 0, add 256
+                    } else {
+                        $waPhone = '256' . substr($waPhone, 0, 9); // Add 256
+                    }
+                }
+                
+                // WhatsApp message - using simple text (emojis added by recipient's device)
+                $whatsappMsg = rawurlencode("*Happy Birthday, {$firstName}!*
+
+Wishing you a wonderful day filled with joy and happiness. May this year bring you success, good health, and prosperity.
+
+From all of us at " . APP_NAME . "!");
+                $whatsappLink = !empty($waPhone) ? "https://wa.me/" . $waPhone . "?text=" . $whatsappMsg : '';
             ?>
             <tr>
                 <td class="ps-4 fw-semibold"><?= $fullName ?></td>
@@ -231,9 +247,25 @@ $base = APP_URL . '/index.php';
                 $email = htmlspecialchars($m['email'] ?? '');
                 $phone = htmlspecialchars($m['phone'] ?? '');
                 
-                // WhatsApp message
-                $whatsappMsg = urlencode("🎉 Happy Birthday, {$firstName}! 🎂\n\nWishing you a wonderful day filled with joy and happiness. May this year bring you success, good health, and prosperity.\n\nFrom all of us at " . APP_NAME . "! 🎈");
-                $whatsappLink = "https://wa.me/" . preg_replace('/[^0-9]/', '', $phone) . "?text=" . $whatsappMsg;
+                // WhatsApp phone normalization (add Uganda country code 256)
+                $waPhone = preg_replace('/\D+/', '', $phone); // Remove non-digits
+                if ($waPhone !== '') {
+                    if (str_starts_with($waPhone, '256')) {
+                        $waPhone = substr($waPhone, 0, 12); // Already has country code
+                    } elseif (str_starts_with($waPhone, '0')) {
+                        $waPhone = '256' . substr($waPhone, 1, 9); // Remove 0, add 256
+                    } else {
+                        $waPhone = '256' . substr($waPhone, 0, 9); // Add 256
+                    }
+                }
+                
+                // WhatsApp message - using simple text (emojis added by recipient's device)
+                $whatsappMsg = rawurlencode("*Happy Birthday, {$firstName}!*
+
+Wishing you a wonderful day filled with joy and happiness. May this year bring you success, good health, and prosperity.
+
+From all of us at " . APP_NAME . "!");
+                $whatsappLink = !empty($waPhone) ? "https://wa.me/" . $waPhone . "?text=" . $whatsappMsg : '';
             ?>
             <tr>
                 <td class="ps-4 fw-semibold">
