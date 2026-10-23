@@ -129,7 +129,7 @@ class SavingsAccountHolderModel extends Model
         $stmt = $this->db->prepare(
             "SELECT a.* FROM `member_savings_accounts` a
              JOIN `savings_account_holders` h ON h.account_id = a.id
-             WHERE h.member_id = ?
+             WHERE h.member_id = ? AND a.id IS NOT NULL AND a.account_number IS NOT NULL
              ORDER BY a.account_type, a.opened_date"
         );
         $stmt->execute([$memberId]);
