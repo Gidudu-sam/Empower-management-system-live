@@ -408,7 +408,35 @@ HTML;
             <input type="hidden" id="interest_amount" name="interest_amount" value="<?= $v('interest_amount','0') ?>">
             <input type="hidden" id="interest_amount_display" value="">
 
-            <!-- Processing Fee — hidden, submitted to server -->
+            <!-- Processing Fee Percentage — Manual input for custom rates -->
+            <div class="col-md-4">
+                <label class="form-label fw-semibold" for="processing_fee_pct">
+                    Processing Fee %
+                    <i class="bi bi-info-circle text-muted" 
+                       data-bs-toggle="tooltip" 
+                       title="Enter 0 for executive loans or no fee. Enter 1.5, 2, 3, etc. for custom rates."></i>
+                </label>
+                <div class="input-group">
+                    <input type="number" 
+                           id="processing_fee_pct" 
+                           name="processing_fee_pct" 
+                           class="form-control<?= $cls('processing_fee_pct') ?>" 
+                           value="<?= $v('processing_fee_pct', '3.00') ?>" 
+                           min="0" 
+                           max="10" 
+                           step="0.1" 
+                           placeholder="0.00">
+                    <span class="input-group-text">%</span>
+                </div>
+                <div class="form-text small">
+                    Set to <strong>0</strong> for executive loans (no fee). Default is 3%.
+                </div>
+                <?php if ($err('processing_fee_pct')): ?>
+                <div class="invalid-feedback"><?= htmlspecialchars($err('processing_fee_pct')) ?></div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Processing Fee Amount — calculated, hidden -->
             <input type="hidden" id="processing_fee" name="processing_fee" value="<?= $v('processing_fee','0') ?>">
             <input type="hidden" id="processing_fee_display" value="">
 
@@ -552,6 +580,201 @@ HTML;
     </div>
 </div>
 
+<!-- ── ASSET FINANCING TYPE ─────────────────────────────────────
+     Asset Financing Type comes FIRST - user needs to specify what they're
+     doing (Purchase / Build-Complete / Renovate) before filling financial
+     details. Each type shows relevant fields. This card only appears when
+     Asset Financing product is selected. -->
+<div class="card mb-4" id="assetFinancingTypeCard" style="display:none;">
+    <div class="card-header d-flex align-items-center gap-2">
+        <i class="bi bi-buildings text-primary"></i>
+        <h6 class="mb-0 fw-semibold">Asset Financing Type</h6>
+    </div>
+    <div class="card-body p-4">
+        <div class="mb-3">
+            <label class="form-label fw-semibold">What will this financing support?</label>
+            <div class="d-flex flex-column gap-2">
+                <div class="form-check border rounded p-2">
+                    <input class="form-check-input" type="radio" name="asset_financing_type" id="aftype_purchase" value="purchase" <?= $v('asset_financing_type') === 'purchase' ? 'checked' : '' ?>>
+                    <label class="form-check-label" for="aftype_purchase">
+                        <strong>Purchase Existing Asset</strong> — Buying land, vehicle, equipment, etc.
+                    </label>
+                </div>
+                <div class="form-check border rounded p-2">
+                    <input class="form-check-input" type="radio" name="asset_financing_type" id="aftype_build" value="build_complete" <?= $v('asset_financing_type') === 'build_complete' ? 'checked' : '' ?>>
+                    <label class="form-check-label" for="aftype_build">
+                        <strong>Build or Complete Rental Property</strong> — Construction or finishing of rental units
+                    </label>
+                </div>
+                <div class="form-check border rounded p-2">
+                    <input class="form-check-input" type="radio" name="asset_financing_type" id="aftype_renovate" value="renovate" <?= $v('asset_financing_type') === 'renovate' ? 'checked' : '' ?>>
+                    <label class="form-check-label" for="aftype_renovate">
+                        <strong>Renovate or Improve Property</strong> — Upgrade existing property to increase rental income
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- PURCHASE TYPE FIELDS -->
+        <div id="purchaseFields" style="display:none;">
+            <hr class="my-3">
+            <h6 class="fw-semibold mb-3">Asset Purchase Details</h6>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold" for="asset_purchase_price">Asset Purchase Price (Shs)</label>
+                    <div class="input-group">
+                        <span class="input-group-text">Shs</span>
+                        <input type="number" id="asset_purchase_price" name="asset_purchase_price" class="form-control"
+                               step="1" min="0" value="<?= $v('asset_purchase_price') ?>" placeholder="0">
+                    </div>
+                    <div class="form-text">Total price of the asset being purchased</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold" for="member_contribution">Member Contribution (Shs)</label>
+                    <div class="input-group">
+                        <span class="input-group-text">Shs</span>
+                        <input type="number" id="member_contribution" name="member_contribution" class="form-control"
+                               step="1" min="0" value="<?= $v('member_contribution') ?>" placeholder="0">
+                    </div>
+                    <div class="form-text" id="eligContributionHint"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BUILD/COMPLETE TYPE FIELDS -->
+        <div id="buildCompleteFields" style="display:none;">
+            <hr class="my-3">
+            <h6 class="fw-semibold mb-3">Construction/Completion Details</h6>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold" for="project_total_cost">Total Project Cost (Shs)</label>
+                    <div class="input-group">
+                        <span class="input-group-text">Shs</span>
+                        <input type="number" id="project_total_cost" name="project_total_cost" class="form-control"
+                               step="1" min="0" value="<?= $v('project_total_cost') ?>" placeholder="0">
+                    </div>
+                    <div class="form-text">Full estimated cost to complete the project</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold" for="amount_already_invested">
+                        Amount Already Invested (Shs) <span class="text-primary">— Your Contribution</span>
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text">Shs</span>
+                        <input type="number" id="amount_already_invested" name="amount_already_invested" class="form-control"
+                               step="1" min="0" value="<?= $v('amount_already_invested') ?>" placeholder="0">
+                    </div>
+                    <div class="form-text">What you've already spent (should be at least 30% of total cost)</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold" for="expected_rental_units">Expected Rental Units</label>
+                    <input type="number" id="expected_rental_units" name="expected_rental_units" class="form-control"
+                           step="1" min="0" value="<?= $v('expected_rental_units') ?>" placeholder="0">
+                    <div class="form-text">Number of rentable rooms/units</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold" for="expected_rental_income">Expected Monthly Rental Income (Shs)</label>
+                    <div class="input-group">
+                        <span class="input-group-text">Shs</span>
+                        <input type="number" id="expected_rental_income" name="expected_rental_income" class="form-control"
+                               step="1" min="0" value="<?= $v('expected_rental_income') ?>" placeholder="0">
+                    </div>
+                    <div class="form-text">Estimated monthly income when complete</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold" for="current_construction_stage">Current Construction Stage</label>
+                    <select id="current_construction_stage" name="current_construction_stage" class="form-select">
+                        <option value="">— Select stage —</option>
+                        <option value="not_started" <?= $v('current_construction_stage') === 'not_started' ? 'selected' : '' ?>>Not Yet Started</option>
+                        <option value="foundation" <?= $v('current_construction_stage') === 'foundation' ? 'selected' : '' ?>>Foundation</option>
+                        <option value="walling" <?= $v('current_construction_stage') === 'walling' ? 'selected' : '' ?>>Walling</option>
+                        <option value="roofing" <?= $v('current_construction_stage') === 'roofing' ? 'selected' : '' ?>>Roofing</option>
+                        <option value="plastering" <?= $v('current_construction_stage') === 'plastering' ? 'selected' : '' ?>>Plastering</option>
+                        <option value="finishing" <?= $v('current_construction_stage') === 'finishing' ? 'selected' : '' ?>>Finishing (windows, doors, floors)</option>
+                        <option value="painting" <?= $v('current_construction_stage') === 'painting' ? 'selected' : '' ?>>Painting & Final Touches</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold" for="expected_completion_date">Expected Completion Date</label>
+                    <input type="date" id="expected_completion_date" name="expected_completion_date" class="form-control"
+                           value="<?= $v('expected_completion_date') ?>">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold" for="property_location">Property Location</label>
+                    <input type="text" id="property_location" name="property_location" class="form-control"
+                           value="<?= $v('property_location') ?>" placeholder="Village, Parish, Sub-county" maxlength="255">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold" for="land_ownership_status">Land Ownership Status</label>
+                    <select id="land_ownership_status" name="land_ownership_status" class="form-select">
+                        <option value="">— Select status —</option>
+                        <option value="owned_titled" <?= $v('land_ownership_status') === 'owned_titled' ? 'selected' : '' ?>>Owned with Title</option>
+                        <option value="owned_untitled" <?= $v('land_ownership_status') === 'owned_untitled' ? 'selected' : '' ?>>Owned without Title</option>
+                        <option value="leased" <?= $v('land_ownership_status') === 'leased' ? 'selected' : '' ?>>Leased</option>
+                        <option value="family_land" <?= $v('land_ownership_status') === 'family_land' ? 'selected' : '' ?>>Family Land</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- RENOVATE TYPE FIELDS -->
+        <div id="renovateFields" style="display:none;">
+            <hr class="my-3">
+            <h6 class="fw-semibold mb-3">Renovation Details</h6>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold" for="renovation_project_cost">Total Renovation Cost (Shs)</label>
+                    <div class="input-group">
+                        <span class="input-group-text">Shs</span>
+                        <input type="number" id="renovation_project_cost" name="renovation_project_cost" class="form-control"
+                               step="1" min="0" value="<?= $v('renovation_project_cost') ?>" placeholder="0">
+                    </div>
+                    <div class="form-text">Full estimated renovation cost</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold" for="renovation_already_invested">
+                        Amount Already Invested (Shs) <span class="text-primary">— Your Contribution</span>
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text">Shs</span>
+                        <input type="number" id="renovation_already_invested" name="renovation_already_invested" class="form-control"
+                               step="1" min="0" value="<?= $v('renovation_already_invested') ?>" placeholder="0">
+                    </div>
+                    <div class="form-text">What you've already spent (should be at least 30% of renovation cost)</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold" for="current_monthly_income">Current Monthly Rental Income (Shs)</label>
+                    <div class="input-group">
+                        <span class="input-group-text">Shs</span>
+                        <input type="number" id="current_monthly_income" name="current_monthly_income" class="form-control"
+                               step="1" min="0" value="<?= $v('current_monthly_income') ?>" placeholder="0">
+                    </div>
+                    <div class="form-text">Current monthly income before renovation</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold" for="renovation_expected_income">Expected Monthly Income After Renovation (Shs)</label>
+                    <div class="input-group">
+                        <span class="input-group-text">Shs</span>
+                        <input type="number" id="renovation_expected_income" name="renovation_expected_income" class="form-control"
+                               step="1" min="0" value="<?= $v('renovation_expected_income') ?>" placeholder="0">
+                    </div>
+                    <div class="form-text">Expected income after improvements</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold" for="renovation_property_location">Property Location</label>
+                    <input type="text" id="renovation_property_location" name="renovation_property_location" class="form-control"
+                           value="<?= $v('renovation_property_location') ?>" placeholder="Village, Parish, Sub-county" maxlength="255">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold" for="renovation_completion_date">Expected Completion Date</label>
+                    <input type="date" id="renovation_completion_date" name="renovation_completion_date" class="form-control"
+                           value="<?= $v('renovation_completion_date') ?>">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- ── PRODUCT ELIGIBILITY REQUIREMENTS ─────────────────────────
      Stage 9: these fields were previously not captured anywhere in this
      form even though several products require them (Asset Financing:
@@ -638,7 +861,6 @@ HTML;
         </div>
     </div>
 </div>
-
 <!-- ── GUARANTOR INFORMATION ─────────────────────────────────── -->
 <div class="card mb-4">
     <div class="card-header d-flex align-items-center gap-2">
@@ -835,12 +1057,18 @@ function getMonthlyRate(principal){
 // loan-product-settings payload the rate preview uses -- no new AJAX
 // call). Hiding a group clears its value so a stale entry from a
 // previously-selected product is never silently submitted.
+// NOTE: For Asset Financing, asset_purchase_price and member_contribution
+// are now in the Asset Financing Type card (moved above), so we hide them
+// here to avoid duplication.
 function toggleEligibilityFields(s) {
+    const isAssetFinancing = s && s.loan_type_name && s.loan_type_name.toLowerCase().includes('asset financing');
+    
     const groups = {
         eligIncomeSourceGroup:  { show: !!(s && +s.requires_income_source === 1), fields: ['income_source'] },
         eligIncomeDetailsGroup: { show: !!(s && +s.requires_income_source === 1), fields: ['income_details'] },
-        eligAssetPriceGroup:    { show: !!(s && parseFloat(s.member_contribution_pct) > 0), fields: ['asset_purchase_price'] },
-        eligContributionGroup:  { show: !!(s && parseFloat(s.member_contribution_pct) > 0), fields: ['member_contribution'] },
+        // Hide these for Asset Financing - they're now in Asset Financing Type card
+        eligAssetPriceGroup:    { show: !!(s && parseFloat(s.member_contribution_pct) > 0 && !isAssetFinancing), fields: ['asset_purchase_price'] },
+        eligContributionGroup:  { show: !!(s && parseFloat(s.member_contribution_pct) > 0 && !isAssetFinancing), fields: ['member_contribution'] },
         eligSecurityTypeGroup:  { show: !!(s && +s.requires_security === 1), fields: ['security_type'] },
         eligSecurityDescGroup:  { show: !!(s && +s.requires_security === 1), fields: ['security_description'] },
         eligWeeklySavingsGroup: { show: !!(s && +s.requires_weekly_savings === 1), fields: ['weekly_savings_commitment'] },
@@ -868,7 +1096,8 @@ function toggleEligibilityFields(s) {
     if (introEl && s) {
         const parts = [];
         if (+s.requires_income_source === 1) parts.push('a stated source of income');
-        if (parseFloat(s.member_contribution_pct) > 0) parts.push('the asset price and a member contribution of at least ' + parseFloat(s.member_contribution_pct) + '%');
+        // Don't mention contribution for Asset Financing - it's in the type card now
+        if (parseFloat(s.member_contribution_pct) > 0 && !isAssetFinancing) parts.push('the asset price and a member contribution of at least ' + parseFloat(s.member_contribution_pct) + '%');
         if (+s.requires_security === 1) parts.push(s.security_type ? (s.security_type + ' security') : 'security to be recorded');
         if (+s.requires_weekly_savings === 1) parts.push('a weekly savings commitment amount');
         introEl.textContent = parts.length ? ('This product requires: ' + parts.join('; ') + '.') : '';
@@ -891,6 +1120,39 @@ function toggleEligibilityFields(s) {
     if (securityTypeHintEl) {
         securityTypeHintEl.textContent = (s && s.security_type)
             ? ('This product requires ' + s.security_type + ' security; the submitted value is locked to that type.') : '';
+    }
+}
+
+// Toggle Asset Financing type fields based on selected type
+function toggleAssetFinancingFields(selectedType) {
+    const purchaseFields = document.getElementById('purchaseFields');
+    const buildCompleteFields = document.getElementById('buildCompleteFields');
+    const renovateFields = document.getElementById('renovateFields');
+    
+    if (purchaseFields) purchaseFields.style.display = (selectedType === 'purchase') ? '' : 'none';
+    if (buildCompleteFields) buildCompleteFields.style.display = (selectedType === 'build_complete') ? '' : 'none';
+    if (renovateFields) renovateFields.style.display = (selectedType === 'renovate') ? '' : 'none';
+}
+
+// Show/hide Asset Financing Type card based on selected product
+function toggleAssetFinancingCard(productName) {
+    const card = document.getElementById('assetFinancingTypeCard');
+    if (!card) return;
+    
+    const isAssetFinancing = productName && productName.toLowerCase().includes('asset financing');
+    card.style.display = isAssetFinancing ? '' : 'none';
+    
+    // Clear type selection if hiding
+    if (!isAssetFinancing) {
+        const radioButtons = document.querySelectorAll('input[name="asset_financing_type"]');
+        radioButtons.forEach(r => r.checked = false);
+        toggleAssetFinancingFields('');
+    } else {
+        // Show fields for currently selected type
+        const selectedRadio = document.querySelector('input[name="asset_financing_type"]:checked');
+        if (selectedRadio) {
+            toggleAssetFinancingFields(selectedRadio.value);
+        }
     }
 }
 
@@ -920,6 +1182,7 @@ if (loanTypeEl) {
                     productRepaymentType = s.repayment_type || 'installment';
                     productBrackets = data.brackets || [];
                     toggleEligibilityFields(s);
+                    toggleAssetFinancingCard(s.loan_type_name);
 
                     let info = '<strong>' + s.loan_type_name + '</strong>';
                     if (productRepaymentType === 'interest_only') {
@@ -955,6 +1218,11 @@ if (loanTypeEl) {
         procFeeRow.forEach(el => el.style.display = isBusinessLoan ? 'none' : '');
     }
 }
+
+// Recalculate when processing fee percentage changes
+document.getElementById('processing_fee_pct')?.addEventListener('input', function() {
+    recalc();
+});
 
 /* ── DOM refs ─────────────────────────────────────────────── */
 const loanEl           = document.getElementById('loan_amount');
@@ -1087,8 +1355,12 @@ function recalc(){
         totalInterest = recurringInterest * months;
     }
 
-    const procFee      = principal * (productProcessingFee / 100);
-    const totalPayable = principal + totalInterest;
+    // Read custom processing fee percentage from user input
+    const procFeePctInput = document.getElementById('processing_fee_pct');
+    const customProcFeePct = procFeePctInput ? (parseFloat(procFeePctInput.value) || 0) : productProcessingFee;
+    
+    const procFee      = principal * (customProcFeePct / 100);
+    const totalPayable = principal + totalInterest + procFee;
 
     // Business Loan (interest_only): monthly payment = interest only
     let instalment;
@@ -1098,7 +1370,9 @@ function recalc(){
         instalment = recurringInterest;
         instalmentLabelText = 'Monthly Interest Due (Shs)';
     } else {
-        instalment = months > 0 ? totalPayable / months : 0;
+        // For standard installment loans, divide total payable (principal + interest, NOT including processing fee)
+        const amountToRepay = principal + totalInterest;
+        instalment = months > 0 ? amountToRepay / months : 0;
         instalmentLabelText = 'Monthly Instalment (Shs)';
     }
 
@@ -1468,6 +1742,122 @@ form.addEventListener('submit', function(e){
 });
 
 /* ── Init ─────────────────────────────────────────────────── */
+// Initialize tooltip if Bootstrap is available
+if (typeof bootstrap !== 'undefined') {
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+}
+
+// Initialize Asset Financing Type radio button listeners
+const afRadios = document.querySelectorAll('input[name="asset_financing_type"]');
+afRadios.forEach(radio => {
+    radio.addEventListener('change', function() {
+        toggleAssetFinancingFields(this.value);
+    });
+});
+
+// On page load, show the appropriate asset financing fields if a type is already selected
+const selectedAfRadio = document.querySelector('input[name="asset_financing_type"]:checked');
+if (selectedAfRadio) {
+    toggleAssetFinancingFields(selectedAfRadio.value);
+}
+
+// Live contribution percentage calculator for Build/Complete
+const projectTotalCostEl = document.getElementById('project_total_cost');
+const amountAlreadyInvestedEl = document.getElementById('amount_already_invested');
+if (projectTotalCostEl && amountAlreadyInvestedEl) {
+    function updateBuildContributionPct() {
+        const total = parseFloat(projectTotalCostEl.value) || 0;
+        const invested = parseFloat(amountAlreadyInvestedEl.value) || 0;
+        const hintEl = amountAlreadyInvestedEl.closest('.col-md-6')?.querySelector('.form-text');
+        
+        if (total > 0 && invested > 0 && hintEl) {
+            const pct = (invested / total) * 100;
+            const color = pct >= 30 ? 'text-success' : 'text-danger';
+            hintEl.innerHTML = `<span class="${color}"><strong>${pct.toFixed(1)}%</strong> of total cost</span> (minimum 30% required)`;
+        } else if (hintEl) {
+            hintEl.textContent = "What you've already spent (should be at least 30% of total cost)";
+        }
+    }
+    projectTotalCostEl.addEventListener('input', updateBuildContributionPct);
+    amountAlreadyInvestedEl.addEventListener('input', updateBuildContributionPct);
+}
+
+// Live contribution percentage calculator for Renovate
+const renovProjectCostEl = document.getElementById('renovation_project_cost');
+const renovAlreadyInvestedEl = document.getElementById('renovation_already_invested');
+if (renovProjectCostEl && renovAlreadyInvestedEl) {
+    function updateRenovContributionPct() {
+        const total = parseFloat(renovProjectCostEl.value) || 0;
+        const invested = parseFloat(renovAlreadyInvestedEl.value) || 0;
+        const hintEl = renovAlreadyInvestedEl.closest('.col-md-6')?.querySelector('.form-text');
+        
+        if (total > 0 && invested > 0 && hintEl) {
+            const pct = (invested / total) * 100;
+            const color = pct >= 30 ? 'text-success' : 'text-danger';
+            hintEl.innerHTML = `<span class="${color}"><strong>${pct.toFixed(1)}%</strong> of renovation cost</span> (minimum 30% required)`;
+        } else if (hintEl) {
+            hintEl.textContent = "What you've already spent (should be at least 30% of renovation cost)";
+        }
+    }
+    renovProjectCostEl.addEventListener('input', updateRenovContributionPct);
+    renovAlreadyInvestedEl.addEventListener('input', updateRenovContributionPct);
+}
+
+// On form submit, copy renovate/build-complete field values to shared field names
+form.addEventListener('submit', function(e) {
+    const afType = document.querySelector('input[name="asset_financing_type"]:checked')?.value;
+    
+    if (afType === 'build_complete') {
+        // Copy build/complete fields to shared names for backend
+        const projectCost = parseFloat(document.getElementById('project_total_cost')?.value) || 0;
+        const alreadyInvested = parseFloat(document.getElementById('amount_already_invested')?.value) || 0;
+        
+        // Map to backend field names
+        const assetPrice = document.getElementById('asset_purchase_price');
+        const contribution = document.getElementById('member_contribution');
+        
+        if (assetPrice) assetPrice.value = projectCost;
+        if (contribution) contribution.value = alreadyInvested;
+        
+        // Validate 30% contribution
+        if (projectCost > 0 && alreadyInvested > 0) {
+            const contributionPct = (alreadyInvested / projectCost) * 100;
+            if (contributionPct < 30) {
+                e.preventDefault();
+                e.stopPropagation();
+                alert(`Amount Already Invested (Shs ${alreadyInvested.toLocaleString()}) is only ${contributionPct.toFixed(1)}% of Total Project Cost.\n\nMinimum required: 30% (Shs ${(projectCost * 0.3).toLocaleString()})`);
+                document.getElementById('amount_already_invested').scrollIntoView({behavior:'smooth', block:'center'});
+                return false;
+            }
+        }
+    } else if (afType === 'renovate') {
+        // Copy renovation fields to shared names
+        const renovCost = parseFloat(document.getElementById('renovation_project_cost')?.value) || 0;
+        const renovInvested = parseFloat(document.getElementById('renovation_already_invested')?.value) || 0;
+        
+        const assetPrice = document.getElementById('asset_purchase_price');
+        const contribution = document.getElementById('member_contribution');
+        
+        if (assetPrice) assetPrice.value = renovCost;
+        if (contribution) contribution.value = renovInvested;
+        
+        // Validate 30% contribution
+        if (renovCost > 0 && renovInvested > 0) {
+            const contributionPct = (renovInvested / renovCost) * 100;
+            if (contributionPct < 30) {
+                e.preventDefault();
+                e.stopPropagation();
+                alert(`Amount Already Invested (Shs ${renovInvested.toLocaleString()}) is only ${contributionPct.toFixed(1)}% of Total Renovation Cost.\n\nMinimum required: 30% (Shs ${(renovCost * 0.3).toLocaleString()})`);
+                document.getElementById('renovation_already_invested').scrollIntoView({behavior:'smooth', block:'center'});
+                return false;
+            }
+        }
+    }
+}, true); // Use capture phase to run before validation
+
 recalc();
 
 })();

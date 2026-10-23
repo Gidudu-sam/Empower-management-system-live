@@ -1,0 +1,765 @@
+/**
+ * Empower Investment Club - Member Portal Stylesheet
+ * Centralized CSS for all portal pages
+ * Version: 2.0
+ */
+
+/* ============================================
+   1. CSS VARIABLES (DESIGN TOKENS)
+   ============================================ */
+:root {
+    /* Brand Colors */
+    --portal-primary: #1e3a8a;
+    --portal-primary-light: #1e40af;
+    --portal-accent: #FF7E06;
+    --portal-success: #10B981;
+    --portal-success-dark: #059669;
+    --portal-warning: #F59E0B;
+    --portal-danger: #EF4444;
+    --portal-info: #0284C7;
+    
+    /* Neutrals */
+    --portal-bg: #F5F7FA;
+    --portal-surface: #FFFFFF;
+    --portal-border: #F3F4F6;
+    --portal-border-dark: #E5E7EB;
+    
+    /* Text Colors */
+    --portal-text-primary: #111827;
+    --portal-text-secondary: #6B7280;
+    --portal-text-tertiary: #9CA3AF;
+    --portal-text-inverse: #FFFFFF;
+    
+    /* Spacing Scale */
+    --portal-space-xs: 8px;
+    --portal-space-sm: 12px;
+    --portal-space-md: 16px;
+    --portal-space-lg: 24px;
+    --portal-space-xl: 32px;
+    --portal-space-2xl: 40px;
+    
+    /* Typography Scale */
+    --portal-font-xs: 11px;
+    --portal-font-sm: 13px;
+    --portal-font-base: 15px;
+    --portal-font-lg: 18px;
+    --portal-font-xl: 22px;
+    --portal-font-2xl: 28px;
+    --portal-font-3xl: 36px;
+    
+    /* Font Weights */
+    --portal-font-normal: 400;
+    --portal-font-medium: 500;
+    --portal-font-semibold: 600;
+    --portal-font-bold: 700;
+    
+    /* Border Radius */
+    --portal-radius-sm: 8px;
+    --portal-radius-md: 12px;
+    --portal-radius-lg: 14px;
+    --portal-radius-xl: 16px;
+    --portal-radius-2xl: 20px;
+    --portal-radius-full: 9999px;
+    
+    /* Shadows */
+    --portal-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --portal-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+    --portal-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --portal-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
+    --portal-shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.16);
+    
+    /* Transitions */
+    --portal-transition-fast: 150ms ease;
+    --portal-transition-base: 200ms ease;
+    --portal-transition-slow: 300ms ease;
+    
+    /* Layout */
+    --portal-sidebar-width: 260px;
+    --portal-header-height: 68px;
+    --portal-bottom-nav-height: 70px;
+}
+
+/* ============================================
+   2. BASE STYLES
+   ============================================ */
+body.portal-body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--portal-bg);
+    color: var(--portal-text-primary);
+    font-size: var(--portal-font-base);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================
+   3. LAYOUT COMPONENTS
+   ============================================ */
+
+/* Mobile Wrapper */
+.portal-wrapper {
+    min-height: 100vh;
+    padding-bottom: var(--portal-bottom-nav-height);
+    padding-top: 20px;
+}
+
+body[data-page="portal-home"] .portal-wrapper,
+body[data-page="portal-menu"] .portal-wrapper {
+    padding-top: 0;
+}
+
+/* Main Content Container */
+.portal-main {
+    width: 100%;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+}
+
+/* Content Section with Padding */
+.portal-content-padded {
+    padding: var(--portal-space-lg);
+}
+
+/* Mobile: center with max-width, Desktop: full width */
+@media (max-width: 991px) {
+    .portal-content-padded {
+        max-width: 500px;
+        margin: 0 auto;
+    }
+}
+
+/* Desktop Sidebar Layout */
+@media (min-width: 992px) {
+    .portal-wrapper {
+        display: none !important;
+    }
+    
+    #layoutSidenav_content {
+        background: var(--portal-bg) !important;
+        margin-left: var(--portal-sidebar-width);
+        width: calc(100% - var(--portal-sidebar-width));
+        min-height: 100vh;
+    }
+    
+    #layoutSidenav_content main {
+        padding: var(--portal-space-xl) !important;
+        width: 100%;
+        max-width: none;
+        margin: 0;
+    }
+}
+
+@media (max-width: 991px) {
+    #layoutSidenav {
+        display: none !important;
+    }
+}
+
+/* ============================================
+   4. CARD COMPONENTS
+   ============================================ */
+
+/* Base Card */
+.portal-card {
+    background: var(--portal-surface);
+    border-radius: var(--portal-radius-lg);
+    padding: var(--portal-space-lg);
+    box-shadow: var(--portal-shadow-sm);
+    transition: box-shadow var(--portal-transition-base);
+}
+
+.portal-card--interactive:hover {
+    box-shadow: var(--portal-shadow-md);
+    cursor: pointer;
+}
+
+/* Featured Card (Balance, Primary Info) */
+.portal-card--featured {
+    background: linear-gradient(135deg, var(--portal-primary), var(--portal-primary-light));
+    color: var(--portal-text-inverse);
+    border-radius: var(--portal-radius-xl);
+    padding: 20px var(--portal-space-lg);
+    box-shadow: 0 4px 12px rgba(30, 58, 138, 0.15);
+    margin: 0 var(--portal-space-lg) var(--portal-space-lg);
+}
+
+@media (min-width: 992px) {
+    .portal-card--featured {
+        margin: 0 0 var(--portal-space-lg);
+    }
+}
+
+/* Success Card (Active Loans) */
+.portal-card--success {
+    background: linear-gradient(135deg, var(--portal-success), var(--portal-success-dark));
+    color: var(--portal-text-inverse);
+    border-radius: var(--portal-radius-xl);
+    padding: var(--portal-space-lg);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+    margin: 0 var(--portal-space-lg) var(--portal-space-lg);
+}
+
+@media (min-width: 992px) {
+    .portal-card--success {
+        margin: 0 0 var(--portal-space-lg);
+    }
+}
+
+/* Stat Card */
+.portal-card--stat {
+    background: var(--portal-surface);
+    border-radius: var(--portal-radius-md);
+    padding: 20px 16px;
+    box-shadow: var(--portal-shadow-sm);
+    transition: all var(--portal-transition-base);
+}
+
+.portal-card--stat:hover {
+    box-shadow: var(--portal-shadow-md);
+    transform: translateY(-2px);
+}
+
+.portal-card--stat:active {
+    transform: translateY(0);
+    box-shadow: var(--portal-shadow-sm);
+}
+
+/* White Content Card */
+.portal-card--content {
+    background: var(--portal-surface);
+    border-radius: var(--portal-radius-lg);
+    padding: var(--portal-space-lg);
+    margin: 0 var(--portal-space-lg) var(--portal-space-lg);
+    box-shadow: var(--portal-shadow-sm);
+    transition: box-shadow var(--portal-transition-base);
+    display: block;
+    min-height: 100px;
+}
+
+.portal-card--content:hover {
+    box-shadow: var(--portal-shadow-md);
+}
+
+@media (min-width: 992px) {
+    .portal-card--content {
+        margin: 0 0 var(--portal-space-lg);
+        padding: var(--portal-space-xl);
+    }
+}
+
+/* ============================================
+   5. GRID LAYOUTS
+   ============================================ */
+
+/* Base Grid */
+.portal-grid {
+    display: grid;
+    gap: var(--portal-space-md);
+}
+
+/* 2 Column Grid */
+.portal-grid--2 {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+/* 3 Column Grid */
+.portal-grid--3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+/* Responsive Grids */
+@media (min-width: 768px) {
+    .portal-grid--md-2 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .portal-grid--md-3 {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (min-width: 992px) {
+    .portal-grid {
+        gap: var(--portal-space-lg);
+    }
+    
+    .portal-grid--lg-2 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .portal-grid--lg-3 {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .portal-grid--lg-4 {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+/* Stats Grid (mobile 2 col, desktop 3 col for better spacing) */
+.portal-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--portal-space-md);
+    margin: 0 var(--portal-space-lg) var(--portal-space-lg);
+}
+
+@media (min-width: 992px) {
+    .portal-stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+        margin: 0 0 var(--portal-space-xl);
+        gap: var(--portal-space-lg);
+    }
+}
+
+/* Summary Cards Grid (2 col mobile, 3 col desktop) */
+.portal-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+    margin-bottom: var(--portal-space-lg);
+    padding: var(--portal-space-lg);
+}
+
+@media (min-width: 768px) {
+    .portal-summary-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+@media (min-width: 992px) {
+    .portal-summary-grid {
+        padding: 0 0 var(--portal-space-lg);
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--portal-space-lg);
+    }
+}
+
+/* Desktop 2-Column Layout (Chart + Sidebar) */
+.portal-desktop-split {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--portal-space-lg);
+}
+
+@media (min-width: 992px) {
+    .portal-desktop-split {
+        grid-template-columns: 1fr 1fr;
+        margin: 0 0 var(--portal-space-lg);
+    }
+    
+    .portal-desktop-split .portal-card--content {
+        margin: 0;
+    }
+}
+
+/* ============================================
+   6. TYPOGRAPHY COMPONENTS
+   ============================================ */
+
+/* Page Header */
+.portal-header-home {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--portal-space-lg);
+    padding: 0 var(--portal-space-lg);
+}
+
+@media (min-width: 992px) {
+    .portal-header-home {
+        padding: 0;
+        margin-bottom: 28px;
+    }
+}
+
+.portal-greeting {
+    font-size: var(--portal-font-xs);
+    color: var(--portal-text-tertiary);
+    margin-bottom: 4px;
+    font-weight: var(--portal-font-medium);
+}
+
+.portal-name {
+    font-size: var(--portal-font-xl);
+    font-weight: var(--portal-font-bold);
+    color: var(--portal-text-primary);
+    margin: 0;
+}
+
+/* Section Headers */
+.portal-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--portal-space-lg);
+}
+
+.portal-section-title {
+    font-size: var(--portal-font-lg);
+    font-weight: var(--portal-font-bold);
+    color: var(--portal-text-primary);
+}
+
+.portal-section-subtitle {
+    font-size: var(--portal-font-xs);
+    color: var(--portal-text-tertiary);
+    font-weight: var(--portal-font-medium);
+    margin-top: 4px;
+}
+
+.portal-section-link {
+    font-size: var(--portal-font-sm);
+    color: var(--portal-danger);
+    text-decoration: none;
+    font-weight: var(--portal-font-semibold);
+    transition: opacity var(--portal-transition-base);
+}
+
+.portal-section-link:hover {
+    opacity: 0.8;
+}
+
+/* Labels */
+.portal-label {
+    font-size: var(--portal-font-xs);
+    font-weight: var(--portal-font-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--portal-text-secondary);
+    margin-bottom: 10px;
+    display: block;
+}
+
+.portal-label--light {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Values */
+.portal-value {
+    font-size: 24px;
+    font-weight: var(--portal-font-bold);
+    color: var(--portal-text-primary);
+    line-height: 1.2;
+}
+
+.portal-value--large {
+    font-size: var(--portal-font-3xl);
+    line-height: 1.1;
+    letter-spacing: -0.5px;
+}
+
+.portal-value--light {
+    color: var(--portal-text-inverse);
+}
+
+/* Description Text */
+.portal-description {
+    font-size: var(--portal-font-xs);
+    color: var(--portal-text-tertiary);
+    margin-top: 4px;
+}
+
+/* ============================================
+   7. LIST COMPONENTS
+   ============================================ */
+
+/* Transaction/Item List */
+.portal-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.portal-list__item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: var(--portal-space-md) 0;
+    border-bottom: 1px solid var(--portal-border);
+    transition: background var(--portal-transition-base);
+}
+
+.portal-list__item:hover {
+    background: #F9FAFB;
+    margin: 0 calc(var(--portal-space-lg) * -1);
+    padding: var(--portal-space-md) var(--portal-space-lg);
+}
+
+.portal-list__item:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.portal-list__icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--portal-success), var(--portal-success-dark));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
+}
+
+.portal-list__icon i {
+    color: var(--portal-text-inverse);
+    font-size: var(--portal-font-lg);
+}
+
+.portal-list__content {
+    flex: 1;
+    min-width: 0;
+}
+
+.portal-list__title {
+    font-size: var(--portal-font-base);
+    font-weight: var(--portal-font-semibold);
+    color: var(--portal-text-primary);
+    margin-bottom: 4px;
+}
+
+.portal-list__meta {
+    font-size: var(--portal-font-xs);
+    color: var(--portal-text-tertiary);
+    font-weight: var(--portal-font-medium);
+}
+
+.portal-list__aside {
+    text-align: right;
+}
+
+.portal-list__amount {
+    font-size: var(--portal-font-base);
+    font-weight: var(--portal-font-bold);
+    color: var(--portal-success);
+    margin-bottom: 4px;
+}
+
+.portal-list__balance {
+    font-size: 10px;
+    color: var(--portal-text-tertiary);
+    font-weight: var(--portal-font-medium);
+}
+
+/* ============================================
+   8. AVATAR COMPONENTS
+   ============================================ */
+
+.portal-avatar {
+    border-radius: var(--portal-radius-full);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: var(--portal-font-bold);
+    flex-shrink: 0;
+}
+
+.portal-avatar--sm {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+}
+
+.portal-avatar--md {
+    width: 40px;
+    height: 40px;
+    font-size: var(--portal-font-lg);
+}
+
+.portal-avatar--lg {
+    width: 64px;
+    height: 64px;
+    font-size: var(--portal-font-2xl);
+}
+
+.portal-avatar--primary {
+    background: #1F2937;
+    color: var(--portal-text-inverse);
+}
+
+.portal-avatar--gradient {
+    background: linear-gradient(135deg, var(--portal-primary), var(--portal-accent));
+    color: var(--portal-text-inverse);
+}
+
+.portal-avatar--interactive {
+    cursor: pointer;
+    transition: transform var(--portal-transition-base);
+}
+
+.portal-avatar--interactive:active {
+    transform: scale(0.95);
+}
+
+/* Mobile header avatar */
+.portal-avatar-small {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #1E293B;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: transform 0.2s ease;
+}
+
+.portal-avatar-small:active {
+    transform: scale(0.95);
+}
+
+/* ============================================
+   9. BADGE COMPONENTS
+   ============================================ */
+
+.portal-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px var(--portal-space-sm);
+    border-radius: var(--portal-radius-2xl);
+    font-size: var(--portal-font-sm);
+    font-weight: var(--portal-font-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.portal-badge--success {
+    background: #D1FAE5;
+    color: #065F46;
+}
+
+.portal-badge--warning {
+    background: #FEF3C7;
+    color: #92400E;
+}
+
+.portal-badge--danger {
+    background: #FEE2E2;
+    color: #991B1B;
+}
+
+.portal-badge--info {
+    background: #DBEAFE;
+    color: #1E40AF;
+}
+
+/* ============================================
+   10. EMPTY STATE
+   ============================================ */
+
+.portal-empty {
+    text-align: center;
+    padding: var(--portal-space-2xl) var(--portal-space-lg);
+    color: var(--portal-text-tertiary);
+}
+
+.portal-empty__icon {
+    font-size: 48px;
+    opacity: 0.25;
+    margin-bottom: var(--portal-space-md);
+    display: block;
+}
+
+.portal-empty__text {
+    font-size: var(--portal-font-sm);
+    font-weight: var(--portal-font-medium);
+}
+
+/* ============================================
+   11. CHART CONTAINER
+   ============================================ */
+
+.portal-chart {
+    margin-top: var(--portal-space-xs);
+    position: relative;
+    height: 220px;
+    width: 100%;
+    min-height: 220px;
+    background: transparent;
+    overflow: hidden;
+}
+
+.portal-chart canvas {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100%;
+    display: block !important;
+    background: transparent;
+}
+
+@media (min-width: 768px) {
+    .portal-chart {
+        height: 260px;
+        min-height: 260px;
+    }
+}
+
+/* ============================================
+   12. UTILITY CLASSES
+   ============================================ */
+
+/* Spacing */
+.portal-mt-0 { margin-top: 0; }
+.portal-mt-4 { margin-top: var(--portal-space-md); }
+.portal-mt-6 { margin-top: var(--portal-space-lg); }
+.portal-mb-0 { margin-bottom: 0; }
+.portal-mb-4 { margin-bottom: var(--portal-space-md); }
+.portal-mb-6 { margin-bottom: var(--portal-space-lg); }
+
+/* Display */
+.portal-flex { display: flex; }
+.portal-grid { display: grid; }
+.portal-block { display: block; }
+.portal-inline-block { display: inline-block; }
+
+/* Flex utilities */
+.portal-items-center { align-items: center; }
+.portal-justify-between { justify-content: space-between; }
+.portal-gap-2 { gap: var(--portal-space-xs); }
+.portal-gap-3 { gap: var(--portal-space-sm); }
+.portal-gap-4 { gap: var(--portal-space-md); }
+
+/* Text utilities */
+.portal-text-center { text-align: center; }
+.portal-text-right { text-align: right; }
+.portal-text-left { text-align: left; }
+
+/* Amount color utilities */
+.amount-green {
+    color: var(--portal-success);
+    font-weight: var(--portal-font-semibold);
+}
+
+.amount-red {
+    color: var(--portal-danger);
+    font-weight: var(--portal-font-semibold);
+}
+
+/* Mobile-specific padding for pages with fixed headers */
+.portal-content--with-header {
+    padding-top: 80px;
+}
+
+@media (min-width: 992px) {
+    .portal-content--with-header {
+        padding-top: 0;
+    }
+}
+
+/* ============================================
+   13. MOBILE-SPECIFIC ADJUSTMENTS
+   ============================================ */
+
+@media (max-width: 767px) {
+    :root {
+        --portal-space-lg: 20px;
+        --portal-space-xl: 24px;
+    }
+}

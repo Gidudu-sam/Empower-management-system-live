@@ -931,18 +931,43 @@ class LoanController extends Controller
                 // Auto-charge loan processing fee
                 require_once APP_PATH . '/models/FeeModel.php';
                 $feeModel = new FeeModel();
-                $loanFeeChargeId = $feeModel->chargeLoanProcessingFee($input['member_id'], $newId, $input['loan_amount'], $userId);
-                // Stage 12-G: same pattern as the registration-fee notification --
-                // notify the fee-collection tier only when a genuinely new
-                // pending charge was created.
-                if ($loanFeeChargeId !== null) {
-                    (new NotificationModel())->notifyRoles(
-                        ['admin', 'treasurer', 'cashier', 'office_admin'],
-                        "Loan processing fee pending",
-                        "Loan processing fee charged for loan {$input['loan_number']} — awaiting payment.",
-                        'info', 'member_fee', $loanFeeChargeId,
-                        ['member_id' => (int)$input['member_id'], 'loan_id' => $newId, 'action_url' => APP_URL . '/index.php?page=fee-charges'],
-                        "member_fee_charged:{$loanFeeChargeId}"
+                
+                // Charge processing fee ONLY if percentage > 0
+                // (Executive loans and special cases can have 0% fee)
+                $processingFeePct = (float)($input['processing_fee_pct'] ?? 3.0);
+                
+                if ($processingFeePct > 0) {
+                    // Calculate custom fee amount
+                    $customFeeAmount = round($input['loan_amount'] * ($processingFeePct / 100), 2);
+                    
+                    // Charge custom processing fee
+                    $loanFeeChargeId = $feeModel->chargeCustomLoanProcessingFee(
+                        $input['member_id'], 
+                        $newId, 
+                        $customFeeAmount,
+                        $processingFeePct,
+                        $userId
+                    );
+                    
+                    // Stage 12-G: same pattern as the registration-fee notification --
+                    // notify the fee-collection tier only when a genuinely new
+                    // pending charge was created.
+                    if ($loanFeeChargeId !== null) {
+                        (new NotificationModel())->notifyRoles(
+                            ['admin', 'treasurer', 'cashier', 'office_admin'],
+                            "Loan processing fee pending ({$processingFeePct}%)",
+                            "Loan processing fee of UGX " . number_format($customFeeAmount, 0) . 
+                            " ({$processingFeePct}%) charged for loan {$input['loan_number']} — awaiting payment.",
+                            'info', 'member_fee', $loanFeeChargeId,
+                            ['member_id' => (int)$input['member_id'], 'loan_id' => $newId, 
+                             'action_url' => APP_URL . '/index.php?page=fee-charges'],
+                            "member_fee_charged:{$loanFeeChargeId}"
+                        );
+                    }
+                } else {
+                    // Log that no processing fee was charged (e.g., executive loan)
+                    $this->model->log($userId, 'loan_recorded',
+                        "Loan {$input['loan_number']} created with 0% processing fee (no charge)"
                     );
                 }
 
@@ -1155,6 +1180,8 @@ class LoanController extends Controller
             'rate_override_reason'    => $rateOverrideReason,
             'interest_amount'         => $calc['interest_amount'],
             'processing_fee'          => $calc['processing_fee'],
+            'processing_fee_pct'      => isset($_POST['processing_fee_pct']) ? max(0, min(10, (float)$_POST['processing_fee_pct'])) : 3.0,
+            'processing_fee_manual'   => 1,
             // Server-derived, never trusted from the client -- monthly_installment
             // is purely a function of amount/rate/period, all already
             // authoritative by this point (Stage 9.1: previously this read
@@ -1195,6 +1222,16 @@ class LoanController extends Controller
             'income_details'          => $s('income_details') ?: null,
             'asset_purchase_price'    => isset($_POST['asset_purchase_price']) && $_POST['asset_purchase_price'] !== '' ? (float)$_POST['asset_purchase_price'] : null,
             'member_contribution'     => isset($_POST['member_contribution']) && $_POST['member_contribution'] !== '' ? (float)$_POST['member_contribution'] : null,
+            'asset_financing_type'    => in_array($_POST['asset_financing_type'] ?? '', ['purchase','build_complete','renovate'], true) ? $_POST['asset_financing_type'] : 'purchase',
+            'project_total_cost'      => isset($_POST['project_total_cost']) && $_POST['project_total_cost'] !== '' ? (float)$_POST['project_total_cost'] : null,
+            'amount_already_invested' => isset($_POST['amount_already_invested']) && $_POST['amount_already_invested'] !== '' ? (float)$_POST['amount_already_invested'] : null,
+            'expected_rental_income'  => isset($_POST['expected_rental_income']) && $_POST['expected_rental_income'] !== '' ? (float)$_POST['expected_rental_income'] : null,
+            'expected_rental_units'   => isset($_POST['expected_rental_units']) && $_POST['expected_rental_units'] !== '' ? (int)$_POST['expected_rental_units'] : null,
+            'current_construction_stage' => $s('current_construction_stage') ?: null,
+            'property_location'       => $s('property_location') ?: null,
+            'land_ownership_status'   => in_array($_POST['land_ownership_status'] ?? '', ['owned_titled','owned_untitled','leased','family_land'], true) ? $_POST['land_ownership_status'] : null,
+            'current_monthly_income'  => isset($_POST['current_monthly_income']) && $_POST['current_monthly_income'] !== '' ? (float)$_POST['current_monthly_income'] : null,
+            'expected_completion_date' => $s('expected_completion_date') ?: null,
             // A product with a fixed security type (e.g. Start-Up's
             // 'chattel') never trusts a free-text submission for it -- the
             // fixed type always wins. Only a flexible product (security
@@ -1299,8 +1336,11 @@ class LoanController extends Controller
                 $tenureMonths,
                 [
                     'income_source'             => $d['income_source'] ?? null,
+                    'asset_financing_type'      => $d['asset_financing_type'] ?? 'purchase',
                     'asset_purchase_price'      => $d['asset_purchase_price'] ?? null,
                     'member_contribution'       => $d['member_contribution'] ?? null,
+                    'project_total_cost'        => $d['project_total_cost'] ?? null,
+                    'amount_already_invested'   => $d['amount_already_invested'] ?? null,
                     'security_type'             => $d['security_type'] ?? null,
                     'security_description'      => $d['security_description'] ?? null,
                     'weekly_savings_commitment' => $d['weekly_savings_commitment'] ?? null,

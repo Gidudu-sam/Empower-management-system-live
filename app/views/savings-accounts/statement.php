@@ -589,7 +589,6 @@ body {
 <div class="page-wrap">
     <div class="toolbar no-print" style="flex-wrap:wrap;align-items:center;">
         <button class="btn-print" onclick="window.print()">Print / Save PDF</button>
-        <button class="btn-close" onclick="window.close()">Close</button>
         <form method="GET" style="display:flex;gap:.4rem;align-items:center;margin-left:auto;">
             <input type="hidden" name="page" value="savings-account-statement">
             <input type="hidden" name="id" value="<?= (int)$account['id'] ?>">

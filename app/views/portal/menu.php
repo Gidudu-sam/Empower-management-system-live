@@ -1,142 +1,97 @@
 <?php $base = APP_URL . '/index.php'; ?>
 
-<style>
-body {
-    background: #1e3a8a;
-}
-
-.portal-main {
-    padding: 0;
-    max-width: 500px;
-    margin: 0 auto;
-}
-
-/* Profile Header */
-.profile-header {
-    padding: 24px 20px;
-    color: white;
-}
-
-.profile-avatar {
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: #FF7E06;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    font-weight: 700;
-    margin-bottom: 16px;
-}
-
-.profile-name {
-    font-size: 18px;
-    font-weight: 600;
-    margin-bottom: 2px;
-}
-
-.profile-subtitle {
-    font-size: 12px;
-    opacity: 0.7;
-}
-
-/* Menu Items */
-.menu-list {
-    padding: 0;
-}
-
-.menu-item {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 16px 20px;
-    color: white;
-    text-decoration: none;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    transition: background 0.2s;
-}
-
-.menu-item:hover {
-    background: rgba(255,255,255,0.05);
-}
-
-.menu-item:active {
-    background: rgba(255,255,255,0.1);
-}
-
-.menu-icon {
-    width: 20px;
-    text-align: center;
-    font-size: 16px;
-}
-
-.menu-label {
-    flex: 1;
-    font-size: 15px;
-    font-weight: 500;
-}
-
-/* Logout */
-.menu-item.logout {
-    margin-top: 24px;
-    border-top: 1px solid rgba(255,255,255,0.1);
-    border-bottom: none;
-}
-</style>
-
 <?php
 $member = $member ?? [];
-$memberName = htmlspecialchars(($member['first_name'] ?? '') . ' ' . ($member['last_name'] ?? ''));
-$userInitial = strtoupper(substr($member['first_name'] ?? 'M', 0, 1));
+$firstName = $member['first_name'] ?? '';
+$lastName = $member['last_name'] ?? '';
+$memberName = htmlspecialchars(trim($firstName . ' ' . $lastName));
+$memberNumber = htmlspecialchars($member['member_number'] ?? 'N/A');
+$userInitial = strtoupper(substr($firstName ?: 'M', 0, 1));
+$status = htmlspecialchars($member['status'] ?? 'Active');
+$notificationCount = $notificationCount ?? 0;
 ?>
 
-<!-- Profile Header -->
-<div class="profile-header">
-    <div class="profile-avatar"><?= $userInitial ?></div>
-    <div class="profile-name"><?= $memberName ?></div>
-    <div class="profile-subtitle">Member portal</div>
+<!-- Header -->
+<div style="padding: 20px 20px 30px; display: flex; align-items: center; gap: 16px; border-bottom: 1px solid #F3F4F6; background: white;">
+    <div class="portal-avatar portal-avatar--lg portal-avatar--gradient"><?= $userInitial ?></div>
+    <div style="flex: 1;">
+        <div style="font-size: 20px; font-weight: 700; color: #111827; margin-bottom: 4px;"><?= $memberName ?></div>
+        <div style="font-size: 13px; color: #6B7280; margin-bottom: 2px;">Member #<?= $memberNumber ?></div>
+        <span class="portal-badge portal-badge--success"><?= $status ?></span>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 24px 20px; border-bottom: 8px solid #F9FAFB; background: white;">
+    <a href="<?= $base ?>?page=portal-profile" style="display: flex; flex-direction: column; align-items: center; text-decoration: none; color: #111827;">
+        <div style="width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 8px; background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%); color: #1B2B6B;">
+            <i class="bi bi-person-fill"></i>
+        </div>
+        <div style="font-size: 12px; font-weight: 500; text-align: center;">My Profile</div>
+    </a>
+    
+    <a href="<?= $base ?>?page=portal-repayments" style="display: flex; flex-direction: column; align-items: center; text-decoration: none; color: #111827;">
+        <div style="width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 8px; background: linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%); color: #FF7E06;">
+            <i class="bi bi-arrow-repeat"></i>
+        </div>
+        <div style="font-size: 12px; font-weight: 500; text-align: center;">Repayments</div>
+    </a>
+    
+    <a href="<?= $base ?>?page=portal-fees" style="display: flex; flex-direction: column; align-items: center; text-decoration: none; color: #111827;">
+        <div style="width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 8px; background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%); color: #059669;">
+            <i class="bi bi-tag-fill"></i>
+        </div>
+        <div style="font-size: 12px; font-weight: 500; text-align: center;">My Fees</div>
+    </a>
+    
+    <a href="<?= $base ?>?page=portal-share-certificate" style="display: flex; flex-direction: column; align-items: center; text-decoration: none; color: #111827;">
+        <div style="width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 8px; background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%); color: #0284C7;">
+            <i class="bi bi-award-fill"></i>
+        </div>
+        <div style="font-size: 12px; font-weight: 500; text-align: center;">My Shares</div>
+    </a>
+    
+    <a href="<?= $base ?>?page=portal-statement" style="display: flex; flex-direction: column; align-items: center; text-decoration: none; color: #111827;">
+        <div style="width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 8px; background: linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%); color: #1B2B6B;">
+            <i class="bi bi-file-earmark-text-fill"></i>
+        </div>
+        <div style="font-size: 12px; font-weight: 500; text-align: center;">Statements</div>
+    </a>
+    
+    <a href="<?= $base ?>?page=portal-change-password" style="display: flex; flex-direction: column; align-items: center; text-decoration: none; color: #111827;">
+        <div style="width: 56px; height: 56px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 8px; background: linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%); color: #FF7E06;">
+            <i class="bi bi-key-fill"></i>
+        </div>
+        <div style="font-size: 12px; font-weight: 500; text-align: center;">Password</div>
+    </a>
 </div>
 
 <!-- Menu List -->
-<div class="menu-list">
-    <a href="<?= $base ?>?page=portal-home" class="menu-item">
-        <i class="bi bi-house-door menu-icon"></i>
-        <span class="menu-label">Home</span>
-    </a>
-    
-    <a href="<?= $base ?>?page=portal-profile" class="menu-item">
-        <i class="bi bi-person menu-icon"></i>
-        <span class="menu-label">My Profile</span>
-    </a>
-    
-    <a href="<?= $base ?>?page=portal-savings" class="menu-item">
-        <i class="bi bi-wallet2 menu-icon"></i>
-        <span class="menu-label">My Savings</span>
-    </a>
-    
-    <a href="<?= $base ?>?page=portal-loans" class="menu-item">
-        <i class="bi bi-cash-coin menu-icon"></i>
-        <span class="menu-label">My Loans</span>
-    </a>
-    
-    <a href="<?= $base ?>?page=portal-repayments" class="menu-item">
-        <i class="bi bi-arrow-repeat menu-icon"></i>
-        <span class="menu-label">My Repayments</span>
-    </a>
-    
-    <a href="<?= $base ?>?page=portal-fees" class="menu-item">
-        <i class="bi bi-tag menu-icon"></i>
-        <span class="menu-label">My Fees</span>
-    </a>
-    
-    <a href="<?= $base ?>?page=portal-statement" class="menu-item">
-        <i class="bi bi-file-earmark-text menu-icon"></i>
-        <span class="menu-label">My Statement</span>
-    </a>
-    
-    <a href="<?= $base ?>?page=logout" class="menu-item logout">
-        <i class="bi bi-box-arrow-right menu-icon"></i>
-        <span class="menu-label">Log out</span>
+<div style="padding: 0 20px; background: white;">
+    <a href="<?= $base ?>?page=portal-notifications" style="display: flex; align-items: center; gap: 14px; padding: 16px 0; text-decoration: none; color: #111827; border-bottom: 1px solid #F3F4F6;">
+        <i class="bi bi-bell-fill" style="width: 24px; text-align: center; color: #6B7280; font-size: 20px;"></i>
+        <div style="flex: 1;">
+            <div style="font-size: 15px; font-weight: 500;">
+                Notifications
+                <?php if ($notificationCount > 0): ?>
+                <span class="portal-badge portal-badge--danger" style="margin-left: 8px;"><?= $notificationCount ?></span>
+                <?php endif; ?>
+            </div>
+        </div>
+        <i class="bi bi-chevron-right" style="color: #D1D5DB; font-size: 16px;"></i>
     </a>
 </div>
+
+<!-- Logout -->
+<div style="padding: 24px 20px 32px; border-top: 8px solid #F9FAFB; background: white;">
+    <a href="<?= $base ?>?page=logout" style="width: 100%; padding: 16px; background: white; border: 1.5px solid #FEE2E2; border-radius: 12px; display: flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; color: #EF4444; font-weight: 600; font-size: 15px;">
+        <i class="bi bi-box-arrow-right" style="font-size: 20px;"></i>
+        <span>Log Out</span>
+    </a>
+</div>
+
+<!-- Version -->
+<div style="text-align: center; padding: 20px; color: #9CA3AF; font-size: 11px; background: white;">
+    Empower Investment Club v2.0
+</div>
+

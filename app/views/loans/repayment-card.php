@@ -477,8 +477,7 @@ foreach (($repayments ?? []) as $r) {
 
 <div class="toolbar no-print">
     <button class="btn-print" onclick="window.print()">Print / Save PDF</button>
-    <a class="btn-back" href="<?= APP_URL ?>/index.php?page=loan-view&id=<?= (int)($loan['id'] ?? 0) ?>">Back to Loan</a>
-    <button class="btn-close" onclick="window.close()">Close</button>
+    <a class="btn-close" href="<?= APP_URL ?>/index.php?page=loan-view&id=<?= (int)($loan['id'] ?? 0) ?>">Close</a>
 </div>
 
 <div class="card">

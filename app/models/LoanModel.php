@@ -625,7 +625,7 @@ class LoanModel extends Model
         'member_id', 'loan_type_id', 'loan_amount', 'approved_amount',
         'interest_rate', 'suggested_interest_rate', 'rate_overridden', 'rate_override_by', 'rate_override_reason',
         'interest_amount', 'interest_mode', 'fixed_interest_amount',
-        'processing_fee', 'monthly_installment', 'total_payable',
+        'processing_fee', 'processing_fee_pct', 'processing_fee_manual', 'monthly_installment', 'total_payable',
         'loan_period', 'loan_period_months', 'grace_period_months',
         'repayment_method', 'repayment_frequency', 'repayment_pattern',
         'issue_date', 'due_date', 'approval_date', 'date_approved', 'date_issued',

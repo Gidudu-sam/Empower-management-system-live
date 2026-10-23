@@ -44,6 +44,9 @@ $routes = [
     'portal-statement-print'  => ['MemberPortalController', 'statementPrint'],
     'portal-statement-email'  => ['MemberPortalController', 'emailStatement'],
     'portal-change-password'  => ['MemberPortalController', 'changePassword'],
+    'portal-menu'             => ['MemberPortalController', 'menu'],
+    'portal-share-certificate' => ['MemberPortalController', 'shares'],
+    'portal-notifications'    => ['MemberPortalController', 'notifications'],
     // Members module
     'members'        => ['MemberController',    'index'],
     'member-add'     => ['MemberController',    'add'],

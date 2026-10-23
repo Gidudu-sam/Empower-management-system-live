@@ -183,8 +183,7 @@ $backUrl = $portalMode
 <div class="page-wrap">
     <div class="toolbar no-print">
         <button class="btn-print" onclick="window.print()">Print / Save PDF</button>
-        <a class="btn-back" href="<?= htmlspecialchars($backUrl) ?>">Back</a>
-        <button class="btn-close" onclick="window.close()">Close</button>
+        <a class="btn-close" href="<?= htmlspecialchars($backUrl) ?>">Close</a>
     </div>
 
     <div class="stmt-card">

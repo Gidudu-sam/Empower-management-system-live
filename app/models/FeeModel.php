@@ -203,7 +203,8 @@ class FeeModel extends Model
             if ($ownTransaction && $this->db->inTransaction()) {
                 $this->db->rollBack();
             }
-            return false;
+            // Re-throw with actual error details instead of silently returning false
+            throw new RuntimeException('Failed to insert fee charge: ' . $e->getMessage(), 0, $e);
         }
     }
 
@@ -281,6 +282,61 @@ class FeeModel extends Model
     }
 
     /**
+     * Charge a custom processing fee amount for a loan.
+     * Used when loan officer sets a custom processing fee percentage
+     * (e.g., 0% for executive loans, 1.5% or 2% for special rates).
+     * 
+     * @param int $memberId Member ID
+     * @param int $loanId Loan ID
+     * @param float $customAmount Calculated fee amount (already computed as loan_amount * pct)
+     * @param float $percentage The percentage used (for logging/reference)
+     * @param int|null $createdBy User who created the charge
+     * @return int|null Charge ID if created, null if skipped or failed
+     */
+    public function chargeCustomLoanProcessingFee(
+        int $memberId, 
+        int $loanId, 
+        float $customAmount,
+        float $percentage,
+        ?int $createdBy = null
+    ): ?int {
+        // Get processing fee configuration
+        $fee = $this->getFeeByFrequency('per_loan');
+        if (!$fee) {
+            return null;
+        }
+        
+        // Check if already charged for this loan
+        $stmt = $this->db->prepare(
+            "SELECT COUNT(*) FROM `member_fees` WHERE `loan_id`=? AND `fee_id`=?"
+        );
+        $stmt->execute([$loanId, $fee['id']]);
+        if ((int)$stmt->fetchColumn() > 0) {
+            return null; // Already charged
+        }
+        
+        // Don't create charge if amount is 0
+        if ($customAmount <= 0) {
+            return null;
+        }
+        
+        // Round to 2 decimal places
+        $feeAmount = round($customAmount, 2);
+        
+        // Create the charge
+        $id = $this->chargeMember(
+            $memberId, 
+            (int)$fee['id'], 
+            $feeAmount, 
+            null, 
+            $loanId, 
+            $createdBy
+        );
+        
+        return $id !== false ? $id : null;
+    }
+
+    /**
      * Fees a staff member (Treasurer, Cashier, Office Administrator, Admin
      * -- the same tier as markPaid()) can select and apply to a member on
      * demand, e.g. an annual subscription. Deliberately excludes:
@@ -350,7 +406,13 @@ class FeeModel extends Model
 
         $id = $this->chargeMember($memberId, $feeId, (float)$fee['amount'], $fyId, null, $createdBy);
         if ($id === false) {
-            throw new RuntimeException('Failed to record the fee charge.');
+            // Get the actual database error for debugging
+            $errorInfo = $this->db->errorInfo();
+            $errorMsg = 'Failed to record the fee charge.';
+            if (!empty($errorInfo[2])) {
+                $errorMsg .= ' Database error: ' . $errorInfo[2];
+            }
+            throw new RuntimeException($errorMsg);
         }
         return $id;
     }

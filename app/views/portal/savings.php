@@ -1,73 +1,85 @@
 <?php $accountModel = new MemberSavingsAccountModel(); ?>
-<h3 class="fw-bold mb-3"><i class="bi bi-piggy-bank me-2"></i>My Savings</h3>
 
-<div class="row g-3 mb-4">
-    <div class="col-6 col-md-4">
-        <div class="stat-card stat-card-accent">
-            <div class="stat-label">Total Balance</div>
-            <div class="stat-value">Shs <?= number_format($balance, 2) ?></div>
-        </div>
+<!-- Summary Cards -->
+<div class="portal-summary-grid">
+    <div class="portal-card--stat">
+        <div class="portal-label">Total Balance</div>
+        <div class="portal-value" style="font-size: 22px;">Shs <?= number_format($balance, 0) ?></div>
     </div>
-    <div class="col-6 col-md-4">
-        <div class="stat-card">
-            <div class="stat-label">Total Deposits Made</div>
-            <div class="stat-value" style="font-size:1.2rem"><?= (int)$depositCount ?></div>
-        </div>
-    </div>
-    <div class="col-12 col-md-4">
-        <div class="stat-card">
-            <div class="stat-label">Savings Accounts</div>
-            <div class="stat-value" style="font-size:1.2rem"><?= count($accounts) ?></div>
-        </div>
+    <div class="portal-card--stat">
+        <div class="portal-label">Total Deposits</div>
+        <div class="portal-value" style="font-size: 22px;"><?= (int)$depositCount ?></div>
     </div>
 </div>
 
-<div class="card mb-4">
-    <div class="card-header"><h6 class="mb-0 fw-semibold">My Accounts</h6></div>
-    <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-            <thead><tr><th>Account Number</th><th>Type</th><th class="text-end">Balance</th><th class="text-center">Status</th></tr></thead>
-            <tbody>
-                <?php if (empty($accounts)): ?>
-                <tr><td colspan="4" class="text-center text-muted py-3">No savings accounts on record.</td></tr>
-                <?php else: foreach ($accounts as $a): ?>
-                <tr>
-                    <td><?= htmlspecialchars($a['account_number']) ?></td>
-                    <td class="text-capitalize"><?= htmlspecialchars(str_replace('_', ' ', $a['account_type'])) ?></td>
-                    <td class="text-end">Shs <?= number_format($accountModel->getAccountBalance((int)$a['id']), 2) ?></td>
-                    <td class="text-center">
-                        <span class="badge rounded-pill <?= $a['status'] === 'active' ? 'bg-success-subtle text-success' : 'bg-secondary-subtle text-secondary' ?>">
+<!-- My Accounts -->
+<div class="portal-card--content">
+    <div class="portal-section-header">
+        <div class="portal-section-title">My Accounts</div>
+    </div>
+    
+    <?php if (empty($accounts)): ?>
+    <div class="portal-empty">
+        <i class="bi bi-wallet2 portal-empty__icon"></i>
+        <div class="portal-empty__text">No savings accounts</div>
+    </div>
+    <?php else: ?>
+        <ul class="portal-list">
+            <?php foreach ($accounts as $a): ?>
+            <li class="portal-list__item">
+                <div class="portal-list__content">
+                    <div class="portal-list__title"><?= htmlspecialchars($a['account_number']) ?></div>
+                    <div class="portal-list__meta"><?= htmlspecialchars(ucwords(str_replace('_', ' ', $a['account_type']))) ?></div>
+                </div>
+                <div class="portal-list__aside">
+                    <div class="portal-list__amount">Shs <?= number_format($accountModel->getAccountBalance((int)$a['id']), 0) ?></div>
+                    <div class="portal-list__balance">
+                        <span class="portal-badge portal-badge--<?= $a['status'] === 'active' ? 'success' : 'warning' ?>">
                             <?= htmlspecialchars(ucfirst($a['status'])) ?>
                         </span>
-                    </td>
-                </tr>
-                <?php endforeach; endif; ?>
-            </tbody>
-        </table>
-    </div>
+                    </div>
+                </div>
+            </li>
+            <?php endforeach; ?>
+        </ul>
+    <?php endif; ?>
 </div>
 
-<div class="card">
-    <div class="card-header"><h6 class="mb-0 fw-semibold">Transaction History</h6></div>
-    <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-            <thead><tr><th>Date</th><th>Receipt</th><th>Type</th><th>Method</th><th class="text-end">Amount</th><th class="text-end">Balance</th></tr></thead>
-            <tbody>
-                <?php if (empty($history)): ?>
-                <tr><td colspan="6" class="text-center text-muted py-3">No transactions on record.</td></tr>
-                <?php else: foreach ($history as $t): ?>
-                <tr>
-                    <td class="small text-muted"><?= date('d M Y', strtotime($t['transaction_date'])) ?></td>
-                    <td class="small"><?= htmlspecialchars($t['receipt_number'] ?? '—') ?></td>
-                    <td class="text-capitalize small"><?= htmlspecialchars(str_replace('_', ' ', $t['transaction_type'])) ?></td>
-                    <td class="small text-muted"><?= htmlspecialchars($t['payment_method'] ?? '—') ?></td>
-                    <td class="text-end <?= (float)$t['amount'] < 0 ? 'text-danger' : 'text-success' ?>">
-                        <?= (float)$t['amount'] < 0 ? '-' : '+' ?>Shs <?= number_format(abs((float)$t['amount']), 2) ?>
-                    </td>
-                    <td class="text-end small">Shs <?= number_format((float)($t['running_balance'] ?? 0), 2) ?></td>
-                </tr>
-                <?php endforeach; endif; ?>
-            </tbody>
-        </table>
+<!-- Transaction History -->
+<div class="portal-card--content">
+    <div class="portal-section-header">
+        <div class="portal-section-title">Transaction History</div>
     </div>
+    
+    <?php if (empty($history)): ?>
+    <div class="portal-empty">
+        <i class="bi bi-inbox portal-empty__icon"></i>
+        <div class="portal-empty__text">No transactions yet</div>
+    </div>
+    <?php else: ?>
+        <ul class="portal-list">
+            <?php foreach ($history as $t): ?>
+            <?php $isDebit = (float)$t['amount'] < 0; ?>
+            <li class="portal-list__item">
+                <div class="portal-list__icon" style="background: <?= $isDebit ? 'linear-gradient(135deg, #EF4444, #DC2626)' : 'linear-gradient(135deg, var(--portal-success), var(--portal-success-dark))' ?>">
+                    <i class="bi bi-arrow-<?= $isDebit ? 'up' : 'down' ?>-circle-fill"></i>
+                </div>
+                <div class="portal-list__content">
+                    <div class="portal-list__title"><?= htmlspecialchars(ucwords(str_replace('_', ' ', $t['transaction_type']))) ?></div>
+                    <div class="portal-list__meta">
+                        <?= date('d M Y', strtotime($t['transaction_date'])) ?> • 
+                        <?= htmlspecialchars(ucfirst($t['payment_method'] ?? 'Cash')) ?> • 
+                        <?= htmlspecialchars($t['receipt_number'] ?? '—') ?>
+                    </div>
+                </div>
+                <div class="portal-list__aside">
+                    <div class="portal-list__amount" style="color: <?= $isDebit ? 'var(--portal-danger)' : 'var(--portal-success)' ?>">
+                        <?= $isDebit ? '-' : '+' ?>Shs <?= number_format(abs((float)$t['amount']), 0) ?>
+                    </div>
+                    <div class="portal-list__balance">Bal <?= number_format((float)($t['running_balance'] ?? 0), 0) ?></div>
+                </div>
+            </li>
+            <?php endforeach; ?>
+        </ul>
+    <?php endif; ?>
 </div>

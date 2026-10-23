@@ -341,22 +341,71 @@ class LoanProductModel extends Model
 
         $contributionPct = $rule['member_contribution_pct'] !== null ? (float)$rule['member_contribution_pct'] : null;
         if ($contributionPct !== null && $contributionPct > 0) {
-            $assetPrice   = isset($eligibility['asset_purchase_price']) ? (float)$eligibility['asset_purchase_price'] : 0.0;
-            $contribution = isset($eligibility['member_contribution']) ? (float)$eligibility['member_contribution'] : 0.0;
-            if ($assetPrice <= 0) {
-                $errors[] = 'This product requires the asset purchase price to be recorded, to verify the required member contribution.';
-            } elseif ($contribution <= 0) {
-                $errors[] = sprintf('This product requires a member contribution of at least %s%% of the asset price.', rtrim(rtrim(number_format($contributionPct, 2), '0'), '.'));
+            // Asset Financing Type determines which fields to check
+            $afType = $eligibility['asset_financing_type'] ?? 'purchase';
+            
+            if ($afType === 'build_complete') {
+                // For construction: check project_total_cost and amount_already_invested
+                $projectCost = isset($eligibility['project_total_cost']) ? (float)$eligibility['project_total_cost'] : 0.0;
+                $invested = isset($eligibility['amount_already_invested']) ? (float)$eligibility['amount_already_invested'] : 0.0;
+                
+                if ($projectCost <= 0) {
+                    $errors[] = 'For construction loans, the Total Project Cost must be recorded.';
+                } elseif ($invested <= 0) {
+                    $errors[] = sprintf('This product requires that you have already invested at least %s%% of the total project cost.', rtrim(rtrim(number_format($contributionPct, 2), '0'), '.'));
+                } else {
+                    $requiredInvestment = round($projectCost * ($contributionPct / 100), 2);
+                    if ($invested < $requiredInvestment) {
+                        $errors[] = sprintf(
+                            'This product requires that you have already invested at least UGX %s (%s%% of the UGX %s project cost); UGX %s was recorded.',
+                            number_format($requiredInvestment, 2),
+                            rtrim(rtrim(number_format($contributionPct, 2), '0'), '.'),
+                            number_format($projectCost, 2),
+                            number_format($invested, 2)
+                        );
+                    }
+                }
+            } elseif ($afType === 'renovate') {
+                // For renovation: check renovation_project_cost and renovation_already_invested
+                // But the form maps these to asset_purchase_price and member_contribution, so check those
+                $assetPrice = isset($eligibility['asset_purchase_price']) ? (float)$eligibility['asset_purchase_price'] : 0.0;
+                $contribution = isset($eligibility['member_contribution']) ? (float)$eligibility['member_contribution'] : 0.0;
+                
+                if ($assetPrice <= 0) {
+                    $errors[] = 'For renovation loans, the Total Renovation Cost must be recorded.';
+                } elseif ($contribution <= 0) {
+                    $errors[] = sprintf('This product requires that you have already invested at least %s%% of the total renovation cost.', rtrim(rtrim(number_format($contributionPct, 2), '0'), '.'));
+                } else {
+                    $requiredInvestment = round($assetPrice * ($contributionPct / 100), 2);
+                    if ($contribution < $requiredInvestment) {
+                        $errors[] = sprintf(
+                            'This product requires that you have already invested at least UGX %s (%s%% of the UGX %s renovation cost); UGX %s was recorded.',
+                            number_format($requiredInvestment, 2),
+                            rtrim(rtrim(number_format($contributionPct, 2), '0'), '.'),
+                            number_format($assetPrice, 2),
+                            number_format($contribution, 2)
+                        );
+                    }
+                }
             } else {
-                $requiredContribution = round($assetPrice * ($contributionPct / 100), 2);
-                if ($contribution < $requiredContribution) {
-                    $errors[] = sprintf(
-                        'This product requires a member contribution of at least UGX %s (%s%% of the UGX %s asset price); UGX %s was recorded.',
-                        number_format($requiredContribution, 2),
-                        rtrim(rtrim(number_format($contributionPct, 2), '0'), '.'),
-                        number_format($assetPrice, 2),
-                        number_format($contribution, 2)
-                    );
+                // For purchase (default): check asset_purchase_price and member_contribution
+                $assetPrice   = isset($eligibility['asset_purchase_price']) ? (float)$eligibility['asset_purchase_price'] : 0.0;
+                $contribution = isset($eligibility['member_contribution']) ? (float)$eligibility['member_contribution'] : 0.0;
+                if ($assetPrice <= 0) {
+                    $errors[] = 'This product requires the asset purchase price to be recorded, to verify the required member contribution.';
+                } elseif ($contribution <= 0) {
+                    $errors[] = sprintf('This product requires a member contribution of at least %s%% of the asset price.', rtrim(rtrim(number_format($contributionPct, 2), '0'), '.'));
+                } else {
+                    $requiredContribution = round($assetPrice * ($contributionPct / 100), 2);
+                    if ($contribution < $requiredContribution) {
+                        $errors[] = sprintf(
+                            'This product requires a member contribution of at least UGX %s (%s%% of the UGX %s asset price); UGX %s was recorded.',
+                            number_format($requiredContribution, 2),
+                            rtrim(rtrim(number_format($contributionPct, 2), '0'), '.'),
+                            number_format($assetPrice, 2),
+                            number_format($contribution, 2)
+                        );
+                    }
                 }
             }
         }

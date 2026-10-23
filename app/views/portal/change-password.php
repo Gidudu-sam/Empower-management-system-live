@@ -56,3 +56,4 @@ document.querySelectorAll('.pwd-toggle').forEach(function (btn) {
     });
 });
 </script>
+

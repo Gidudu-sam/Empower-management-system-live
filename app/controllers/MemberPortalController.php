@@ -65,6 +65,9 @@ class MemberPortalController extends Controller
     // ----------------------------------------------------------------
     public function home(): void
     {
+        // Set proper CSP to allow Chart.js and required resources
+        header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self';");
+        
         $memberId = Session::requireMember();
         $member   = $this->memberModel->find($memberId);
 
@@ -98,9 +101,164 @@ class MemberPortalController extends Controller
         $memberId = Session::requireMember();
         $member   = $this->memberModel->find($memberId);
 
+        // Count unread notifications (last 30 days)
+        $notificationCount = 0;
+        try {
+            $db = Database::getInstance()->getConnection();
+            
+            // Count recent transactions as notifications
+            $stmt = $db->prepare('
+                SELECT COUNT(*) as total FROM (
+                    SELECT transaction_date FROM savings_transactions 
+                    WHERE member_id = ? AND transaction_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                    UNION ALL
+                    SELECT disbursement_date FROM loans 
+                    WHERE member_id = ? AND status = "active" AND disbursement_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                    UNION ALL
+                    SELECT payment_date FROM repayments r
+                    JOIN loans l ON r.loan_id = l.id
+                    WHERE l.member_id = ? AND r.payment_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                ) as notifications
+            ');
+            $stmt->execute([$memberId, $memberId, $memberId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            $notificationCount = (int)($result['total'] ?? 0);
+        } catch (Exception $e) {
+            // Silently handle
+        }
+
         $this->render('portal/menu', [
             'pageTitle' => 'More — ' . APP_NAME,
             'member'    => $member,
+            'notificationCount' => $notificationCount,
+        ], 'portal');
+    }
+
+    // ----------------------------------------------------------------
+    // SHARES — member's share capital transactions and balance
+    // ----------------------------------------------------------------
+    public function shares(): void
+    {
+        $memberId = Session::requireMember();
+        $member   = $this->memberModel->find($memberId);
+
+        require_once APP_PATH . '/models/ShareModel.php';
+        $shareModel = new ShareModel();
+        $shareValue = (float)$this->settingsModel->get('share_value', '20000');
+
+        $this->render('portal/shares', [
+            'pageTitle'         => 'My Shares — ' . APP_NAME,
+            'member'            => $member,
+            'shareQuantity'     => $shareModel->memberQuantity((int)$memberId, $shareValue),
+            'shareCapital'      => $shareModel->memberCapital((int)$memberId),
+            'shareTransactions' => $shareModel->ledgerForMember((int)$memberId, $shareValue),
+            'shareValue'        => $shareValue,
+        ], 'portal');
+    }
+
+    // ----------------------------------------------------------------
+    // NOTIFICATIONS — member's notifications and announcements
+    // ----------------------------------------------------------------
+    public function notifications(): void
+    {
+        $memberId = Session::requireMember();
+        $member   = $this->memberModel->find($memberId);
+
+        // Get member-relevant notifications from various sources
+        $notifications = [];
+        
+        try {
+            $db = Database::getInstance()->getConnection();
+            
+            // Recent deposits (last 30 days)
+            $stmt = $db->prepare('
+                SELECT 
+                    "deposit" as type,
+                    "success" as notification_type,
+                    CONCAT("Deposit Received") as title,
+                    CONCAT("Shs ", FORMAT(amount, 0), " deposited to your account") as message,
+                    transaction_date as created_at,
+                    0 as is_read
+                FROM savings_transactions 
+                WHERE member_id = ? 
+                AND transaction_type = "deposit"
+                AND transaction_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                ORDER BY transaction_date DESC
+                LIMIT 10
+            ');
+            $stmt->execute([$memberId]);
+            $deposits = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Recent loan disbursements
+            $stmt = $db->prepare('
+                SELECT 
+                    "loan" as type,
+                    "info" as notification_type,
+                    CONCAT("Loan Disbursed") as title,
+                    CONCAT("Loan ", loan_number, " of Shs ", FORMAT(approved_amount, 0), " has been disbursed") as message,
+                    disbursement_date as created_at,
+                    0 as is_read
+                FROM loans 
+                WHERE member_id = ? 
+                AND status = "active"
+                AND disbursement_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                ORDER BY disbursement_date DESC
+                LIMIT 5
+            ');
+            $stmt->execute([$memberId]);
+            $loans = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Recent repayments
+            $stmt = $db->prepare('
+                SELECT 
+                    "repayment" as type,
+                    "success" as notification_type,
+                    CONCAT("Repayment Processed") as title,
+                    CONCAT("Shs ", FORMAT(r.amount, 0), " payment received for loan ", l.loan_number) as message,
+                    r.payment_date as created_at,
+                    0 as is_read
+                FROM repayments r
+                JOIN loans l ON r.loan_id = l.id
+                WHERE l.member_id = ? 
+                AND r.payment_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                ORDER BY r.payment_date DESC
+                LIMIT 10
+            ');
+            $stmt->execute([$memberId]);
+            $repayments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Recent share transactions
+            $stmt = $db->prepare('
+                SELECT 
+                    "shares" as type,
+                    "info" as notification_type,
+                    CONCAT("Share Transaction") as title,
+                    CONCAT(REPLACE(transaction_type, "_", " "), " - ", FORMAT(quantity, 2), " shares") as message,
+                    transaction_date as created_at,
+                    0 as is_read
+                FROM share_transactions 
+                WHERE member_id = ? 
+                AND transaction_date >= DATE_SUB(NOW(), INTERVAL 30 DAY)
+                ORDER BY transaction_date DESC
+                LIMIT 5
+            ');
+            $stmt->execute([$memberId]);
+            $shares = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            
+            // Merge all notifications and sort by date
+            $notifications = array_merge($deposits, $loans, $repayments, $shares);
+            usort($notifications, function($a, $b) {
+                return strtotime($b['created_at']) - strtotime($a['created_at']);
+            });
+            
+        } catch (Exception $e) {
+            // Silently handle if tables don't exist
+        }
+
+        $this->render('portal/notifications', [
+            'pageTitle'     => 'Notifications — ' . APP_NAME,
+            'member'        => $member,
+            'notifications' => $notifications,
         ], 'portal');
     }
 

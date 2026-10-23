@@ -1,236 +1,5 @@
 <?php $base = APP_URL . '/index.php'; ?>
 
-<style>
-/* Exact Screenshot Match */
-body {
-    background: #F8F9FA;
-}
-
-.portal-main {
-    padding: 16px;
-    max-width: 500px;
-    margin: 0 auto;
-}
-
-/* Header with avatar */
-.portal-header-home {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 20px;
-}
-
-.portal-greeting {
-    font-size: 11px;
-    color: #9CA3AF;
-    margin-bottom: 4px;
-}
-
-.portal-name {
-    font-size: 22px;
-    font-weight: 700;
-    color: #111827;
-    margin: 0;
-}
-
-.portal-avatar-home {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background: #1F2937;
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
-    font-size: 16px;
-    cursor: pointer;
-    flex-shrink: 0;
-}
-
-/* Balance Card */
-.balance-card {
-    background: #1e3a8a;
-    border-radius: 16px;
-    padding: 24px;
-    color: white;
-    margin-bottom: 16px;
-}
-
-.balance-label {
-    font-size: 10px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1.2px;
-    opacity: 0.7;
-    margin-bottom: 8px;
-}
-
-.balance-amount {
-    font-size: 32px;
-    font-weight: 700;
-    margin-bottom: 12px;
-    letter-spacing: -0.5px;
-}
-
-.balance-meta {
-    font-size: 11px;
-    opacity: 0.85;
-}
-
-.balance-meta .amount-green {
-    color: #10B981;
-    font-weight: 600;
-}
-
-/* Stats Grid */
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    margin-bottom: 24px;
-    align-items: end;
-}
-
-.stat-box {
-    text-align: center;
-}
-
-.stat-box.highlighted {
-    background: white;
-    padding: 12px 8px;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    border-bottom: 3px solid #3B82F6;
-}
-
-.stat-label {
-    font-size: 11px;
-    color: #6B7280;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    margin-bottom: 8px;
-    font-weight: 500;
-}
-
-.stat-value {
-    font-size: 20px;
-    font-weight: 700;
-    color: #111827;
-}
-
-/* White Card Container */
-.white-card {
-    background: white;
-    border-radius: 16px;
-    padding: 20px;
-    margin-bottom: 16px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-}
-
-/* Section Header */
-.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-}
-
-.section-title {
-    font-size: 15px;
-    font-weight: 700;
-    color: #111827;
-}
-
-.section-link {
-    font-size: 12px;
-    color: #EF4444;
-    text-decoration: none;
-    font-weight: 600;
-}
-
-/* Chart Container */
-.chart-container {
-    margin-top: 4px;
-}
-
-/* Transaction Item */
-.txn-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 14px 0;
-    border-bottom: 1px solid #F3F4F6;
-}
-
-.txn-item:last-child {
-    border-bottom: none;
-    padding-bottom: 0;
-}
-
-.txn-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    background: #10B981;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.txn-icon i {
-    color: white;
-    font-size: 14px;
-}
-
-.txn-details {
-    flex: 1;
-    min-width: 0;
-}
-
-.txn-type {
-    font-size: 14px;
-    font-weight: 600;
-    color: #111827;
-    margin-bottom: 3px;
-}
-
-.txn-date {
-    font-size: 10px;
-    color: #9CA3AF;
-}
-
-.txn-amount {
-    text-align: right;
-}
-
-.txn-amount-value {
-    font-size: 14px;
-    font-weight: 700;
-    color: #10B981;
-    margin-bottom: 3px;
-}
-
-.txn-balance {
-    font-size: 10px;
-    color: #9CA3AF;
-}
-
-.empty-state {
-    text-align: center;
-    padding: 32px 16px;
-    color: #9CA3AF;
-}
-
-.empty-state i {
-    font-size: 40px;
-    opacity: 0.3;
-    margin-bottom: 12px;
-    display: block;
-}
-</style>
-
 <?php if (!empty($success)): ?>
 <div class="alert alert-success alert-dismissible fade show mb-3">
     <i class="bi bi-check-circle-fill"></i> <?= htmlspecialchars($success) ?>
@@ -246,148 +15,124 @@ body {
 <?php endif; ?>
 
 <div class="portal-header-home">
-    <div>
-        <div class="portal-greeting">Good <?= date('H') < 12 ? 'morning' : (date('H') < 18 ? 'afternoon' : 'evening') ?></div>
-        <h1 class="portal-name"><?= htmlspecialchars($member['first_name'] ?? 'Member') ?></h1>
-    </div>
-    <div class="portal-avatar-home" onclick="window.location='<?= APP_URL ?>/index.php?page=portal-profile'">
-        <?= strtoupper(substr($member['first_name'] ?? 'M', 0, 1)) ?>
+    <div style="flex: 1;">
+        <h1 style="font-size: 24px; font-weight: 700; color: #111827; margin: 0 0 4px 0; line-height: 1.2;">
+            Good <?= date('H') < 12 ? 'morning' : (date('H') < 18 ? 'afternoon' : 'evening') ?>, <?= htmlspecialchars($member['first_name'] ?? 'Member') ?>
+        </h1>
+        <p style="font-size: 14px; color: #6B7280; margin: 0; font-weight: 400;">Welcome to your member account</p>
     </div>
 </div>
 
 <!-- Balance Card -->
-<div class="balance-card">
-    <div class="balance-label">Savings Balance</div>
-    <div class="balance-amount">Shs <?= number_format($savingsBalance, 0) ?></div>
-    <div class="balance-meta">
+<div class="portal-card--featured">
+    <div class="portal-label portal-label--light">Savings Balance</div>
+    <div class="portal-value portal-value--large portal-value--light">Shs <?= number_format($savingsBalance, 0) ?></div>
+    <div style="font-size: 12px; opacity: 0.9; display: flex; align-items: center; gap: 4px; margin-top: 8px;">
         <?php 
-        $lastDeposit = !empty($recentTxns) ? array_values(array_filter($recentTxns, fn($t) => (float)$t['amount'] > 0))[0] ?? null : null;
+        // Find the last actual deposit (credit > 0), not just positive amount
+        $lastDeposit = !empty($recentTxns) ? array_values(array_filter($recentTxns, fn($t) => (float)($t['credit'] ?? 0) > 0))[0] ?? null : null;
         ?>
-        <span class="amount-green">+Shs <?= $lastDeposit ? number_format((float)$lastDeposit['amount'], 0) : '0' ?></span> last deposit, <?= $lastDeposit ? date('d M', strtotime($lastDeposit['transaction_date'])) : 'N/A' ?>
+        <span class="amount-green">+Shs <?= $lastDeposit ? number_format((float)$lastDeposit['credit'], 0) : '0' ?></span> last deposit<?= $lastDeposit ? ', ' . date('d M', strtotime($lastDeposit['transaction_date'])) : '' ?>
     </div>
 </div>
 
 <!-- Stats Grid -->
-<div class="stats-grid">
-    <div class="stat-box">
-        <div class="stat-label">Loan</div>
-        <div class="stat-value"><?= $activeLoan ? number_format($activeLoan['outstanding'], 0) : 'None' ?></div>
-    </div>
-    <div class="stat-box highlighted">
-        <div class="stat-label">Shares</div>
-        <div class="stat-value"><?= number_format($sharePosition['count']) ?></div>
-    </div>
-    <div class="stat-box">
-        <div class="stat-label">Fees</div>
-        <div class="stat-value"><?= count($pendingFees) ?></div>
-    </div>
-</div>
-
-<!-- Savings Trend - White Card -->
-<div class="white-card">
-    <div class="section-header">
-        <div class="section-title">Savings trend</div>
-        <div style="font-size: 11px; color: #9CA3AF;">Last 6 months</div>
-    </div>
-    
-    <div class="chart-container">
-        <canvas id="savingsTrendChart" height="160"></canvas>
-    </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script>
-(function () {
-    const labels  = <?= json_encode(array_column($savingsTrend, 'label')) ?>;
-    const balance = <?= json_encode(array_map(fn($r) => round($r['balance'], 2), $savingsTrend)) ?>;
-
-    new Chart(document.getElementById('savingsTrendChart'), {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Balance',
-                data: balance,
-                borderColor: '#10B981',
-                backgroundColor: function(context) {
-                    const chart = context.chart;
-                    const {ctx, chartArea} = chart;
-                    if (!chartArea) return null;
-                    const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                    gradient.addColorStop(0, 'rgba(16,185,129,0.0)');
-                    gradient.addColorStop(1, 'rgba(16,185,129,0.2)');
-                    return gradient;
-                },
-                borderWidth: 2.5,
-                tension: 0.4,
-                fill: true,
-                pointRadius: 0,
-                pointHoverRadius: 5,
-                pointHoverBackgroundColor: '#ffffff',
-                pointHoverBorderColor: '#10B981',
-                pointHoverBorderWidth: 2,
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    enabled: false
-                }
-            },
-            scales: {
-                x: { 
-                    grid: { display: false },
-                    border: { display: false },
-                    ticks: {
-                        font: { size: 10 },
-                        color: '#9CA3AF'
-                    }
-                },
-                y: {
-                    display: false,
-                    beginAtZero: true
-                }
-            }
-        }
-    });
-})();
-</script>
-
-<!-- Recent Transactions - White Card -->
-<div class="white-card">
-    <div class="section-header">
-        <div class="section-title">Recent transactions</div>
-        <a href="<?= $base ?>?page=portal-savings" class="section-link">View all</a>
-    </div>
-    
-    <?php if (empty($recentTxns)): ?>
-    <div class="empty-state">
-        <i class="bi bi-inbox"></i>
-        <div>No transactions yet</div>
-    </div>
-    <?php else: ?>
-        <?php foreach (array_slice($recentTxns, 0, 3) as $t): ?>
-        <div class="txn-item">
-            <div class="txn-icon">
-                <i class="bi bi-arrow-down-circle-fill"></i>
-            </div>
-            <div class="txn-details">
-                <div class="txn-type"><?= htmlspecialchars(ucwords(str_replace('_', ' ', $t['transaction_type']))) ?></div>
-                <div class="txn-date">
-                    <?= date('d M Y', strtotime($t['transaction_date'])) ?> • 
-                    <?= htmlspecialchars(ucfirst($t['payment_method'] ?? 'Cash')) ?> • 
-                    SAV-<?= htmlspecialchars($t['receipt_number'] ?? '00187') ?>
-                </div>
-            </div>
-            <div class="txn-amount">
-                <div class="txn-amount-value">+<?= number_format(abs((float)$t['amount']), 0) ?></div>
-                <div class="txn-balance">Bal <?= number_format((float)($t['running_balance'] ?? 0), 0) ?></div>
-            </div>
+<div class="portal-stats-grid">
+    <a href="<?= $base ?>?page=portal-loans" class="portal-card--stat" style="text-decoration: none; color: inherit; cursor: pointer;">
+        <div class="portal-label">Active Loan</div>
+        <div class="portal-value" style="font-size: 22px; text-align: left; margin-bottom: 4px;">
+            <?php if ($activeLoan): ?>
+                Shs <?= number_format($activeLoan['outstanding'], 0) ?>
+            <?php else: ?>
+                None
+            <?php endif; ?>
         </div>
-        <?php endforeach; ?>
-    <?php endif; ?>
+        <div class="portal-description" style="text-align: left;">
+            <?= $activeLoan ? 'Outstanding balance' : 'No active loan' ?>
+        </div>
+    </a>
+    <a href="<?= $base ?>?page=portal-share-certificate" class="portal-card--stat" style="text-decoration: none; color: inherit; cursor: pointer;">
+        <div class="portal-label">My Shares</div>
+        <div class="portal-value" style="font-size: 22px; text-align: left; margin-bottom: 4px;"><?= number_format($sharePosition['count']) ?></div>
+        <div class="portal-description" style="text-align: left;">
+            Shs <?= number_format($sharePosition['value'] ?? 0, 0) ?> value
+        </div>
+    </a>
+    <a href="<?= $base ?>?page=portal-fees" class="portal-card--stat" style="text-decoration: none; color: inherit; cursor: pointer;">
+        <div class="portal-label">Pending Fees</div>
+        <div class="portal-value" style="font-size: 22px; text-align: left; margin-bottom: 4px;"><?= count($pendingFees) ?></div>
+        <div class="portal-description" style="text-align: left;">
+            <?= count($pendingFees) > 0 ? 'Require payment' : 'All paid' ?>
+        </div>
+    </a>
+</div>
+
+<!-- Desktop Grid: Chart + Transactions -->
+<div class="portal-desktop-split">
+    <!-- Savings Trend -->
+    <div class="portal-card--content">
+        <div class="portal-section-header">
+            <div>
+                <div class="portal-section-title">Savings trend</div>
+                <div class="portal-section-subtitle">Track your savings growth over time</div>
+            </div>
+            <div style="font-size: 11px; color: var(--portal-text-tertiary); font-weight: 500;">Last 6 months</div>
+        </div>
+        
+        <div class="portal-chart">
+            <canvas id="savingsTrendChart" 
+                    style="display: block; width: 100%; height: 100%;"
+                    data-labels='<?= json_encode(array_column($savingsTrend, 'label')) ?>'
+                    data-balance='<?= json_encode(array_map(fn($r) => round($r['balance'], 2), $savingsTrend)) ?>'></canvas>
+        </div>
+    </div>
+
+    <!-- Recent Transactions -->
+    <div class="portal-card--content">
+        <div class="portal-section-header">
+            <div>
+                <div class="portal-section-title">Recent activity</div>
+                <div class="portal-section-subtitle">Latest account transactions</div>
+            </div>
+            <a href="<?= $base ?>?page=portal-savings" class="portal-section-link">View all</a>
+        </div>
+        
+        <?php if (empty($recentTxns)): ?>
+        <div class="portal-empty">
+            <i class="bi bi-inbox portal-empty__icon"></i>
+            <div class="portal-empty__text">No transactions yet</div>
+        </div>
+        <?php else: ?>
+            <ul class="portal-list">
+                <?php foreach (array_slice($recentTxns, 0, 5) as $t): 
+                    // Determine if credit (deposit) or debit (withdrawal)
+                    $isCredit = (float)($t['credit'] ?? 0) > 0;
+                    $isDebit = (float)($t['debit'] ?? 0) > 0;
+                    $amount = abs((float)$t['amount']);
+                    $icon = $isCredit ? 'bi-arrow-down-circle-fill' : 'bi-arrow-up-circle-fill';
+                    $amountClass = $isCredit ? 'amount-green' : 'amount-red';
+                    $sign = $isCredit ? '+' : '-';
+                ?>
+                <li class="portal-list__item">
+                    <div class="portal-list__icon">
+                        <i class="bi <?= $icon ?>"></i>
+                    </div>
+                    <div class="portal-list__content">
+                        <div class="portal-list__title"><?= htmlspecialchars(ucwords(str_replace('_', ' ', $t['transaction_type']))) ?></div>
+                        <div class="portal-list__meta">
+                            <?= date('d M Y', strtotime($t['transaction_date'])) ?> • 
+                            <?= htmlspecialchars(ucfirst($t['payment_method'] ?? 'Cash')) ?>
+                        </div>
+                    </div>
+                    <div class="portal-list__aside">
+                        <div class="portal-list__amount">
+                            <span class="<?= $amountClass ?>"><?= $sign ?>Shs <?= number_format($amount, 0) ?></span>
+                        </div>
+                        <div class="portal-list__balance">Bal Shs <?= number_format((float)($t['running_balance'] ?? 0), 0) ?></div>
+                    </div>
+                </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endif; ?>
+    </div>
 </div>
