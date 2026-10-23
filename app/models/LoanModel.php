@@ -1448,7 +1448,7 @@ class LoanModel extends Model
     {
         try {
             $stmt = $this->db->prepare(
-                "SELECT l.*, m.first_name, m.last_name, m.member_number, m.phone AS member_phone,
+                "SELECT l.*, m.first_name, m.last_name, m.member_number, m.account_number, m.phone AS member_phone,
                         m.gender, m.national_id,
                         u.full_name AS recorded_by_name,
                         lt.name AS loan_type_name,
@@ -1477,7 +1477,7 @@ class LoanModel extends Model
     {
         try {
             $stmt = $this->db->prepare(
-                "SELECT l.*, m.first_name, m.last_name, m.member_number, m.phone AS member_phone,
+                "SELECT l.*, m.first_name, m.last_name, m.member_number, m.account_number, m.phone AS member_phone,
                         m.gender, m.national_id,
                         lt.name AS loan_type_name
                  FROM `loans` l

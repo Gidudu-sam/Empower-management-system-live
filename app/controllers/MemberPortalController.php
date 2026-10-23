@@ -91,6 +91,20 @@ class MemberPortalController extends Controller
     }
 
     // ----------------------------------------------------------------
+    // MENU — More options page for mobile navigation
+    // ----------------------------------------------------------------
+    public function menu(): void
+    {
+        $memberId = Session::requireMember();
+        $member   = $this->memberModel->find($memberId);
+
+        $this->render('portal/menu', [
+            'pageTitle' => 'More — ' . APP_NAME,
+            'member'    => $member,
+        ], 'portal');
+    }
+
+    // ----------------------------------------------------------------
     // PROFILE — read-only. Editing a member's own record is still a
     // staff (office_admin) action; the portal does not duplicate it.
     // ----------------------------------------------------------------

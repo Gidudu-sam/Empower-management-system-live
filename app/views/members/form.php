@@ -356,31 +356,8 @@ $cls     = fn(string $k) => isset($errors[$k]) ? ' is-invalid' : '';
         <div class="card-body p-4">
             <div class="row g-3">
 
-                <!-- Account Number -->
-                <div class="col-md-4">
-                    <label class="form-label fw-semibold" for="account_number">
-                        Account Number
-                        <span class="badge bg-info-subtle text-info ms-1" style="font-size:.6rem;">OPTIONAL</span>
-                    </label>
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="bi bi-hash"></i></span>
-                        <input type="text" id="account_number" name="account_number"
-                               class="form-control<?= $cls('account_number') ?>"
-                               value="<?= $v('account_number') ?>"
-                               placeholder="e.g. <?= htmlspecialchars($nextAccountNumber ?? '100001') ?>"
-                               maxlength="30">
-                    </div>
-                    <?php if ($err('account_number')): ?>
-                    <div class="text-danger small mt-1"><?= htmlspecialchars($err('account_number')) ?></div>
-                    <?php else: ?>
-                    <div class="form-text text-muted">
-                        Leave blank to assign later. Suggested next: <strong><?= htmlspecialchars($nextAccountNumber ?? '') ?></strong>
-                    </div>
-                    <?php endif; ?>
-                </div>
-
                 <!-- Member Number (read-only) -->
-                <div class="col-md-3">
+                <div class="col-md-4">
                     <label class="form-label fw-semibold">Member Number</label>
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-person-badge"></i></span>
@@ -388,6 +365,17 @@ $cls     = fn(string $k) => isset($errors[$k]) ? ' is-invalid' : '';
                                value="<?= htmlspecialchars($memberNumber) ?>" readonly>
                     </div>
                     <div class="form-text text-muted">Auto-assigned by system.</div>
+                </div>
+
+                <!-- Account Number (read-only, auto-generated) -->
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Account Number</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-hash"></i></span>
+                        <input type="text" class="form-control bg-light fw-bold text-success"
+                               value="<?= $isEdit ? htmlspecialchars($v('account_number')) : htmlspecialchars($nextAccountNumber ?? '') ?>" readonly>
+                    </div>
+                    <div class="form-text text-muted">Auto-assigned by system on save.</div>
                 </div>
 
                 <!-- Join Date -->

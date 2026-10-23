@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title><?= htmlspecialchars($pageTitle ?? APP_NAME) ?></title>
     
     <!-- Favicon -->
@@ -12,13 +12,162 @@
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="<?= APP_URL ?>/public/css/app.css?v=<?= time() ?>">
-    <meta name="theme-color" content="#0b1f3a">
+    <meta name="theme-color" content="#1B2B6B">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <style>
+    /* Enhanced Member Portal Styles */
+    :root {
+        --portal-primary: #1e3a8a;
+        --portal-accent: #FF7E06;
+        --portal-bg: #FFFFFF;
+    }
+    
+    body.portal-body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        background: var(--portal-bg);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+    
+    /* Mobile-First Portal Container */
+    .portal-wrapper {
+        min-height: 100vh;
+        padding-bottom: 70px;
+    }
+    
+    /* Top Header - Hide on home page */
+    .portal-header {
+        background: white;
+        padding: 16px 20px;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        display: none; /* Hidden by default, show on other pages */
+    }
+    
+    body[data-page="portal-savings"] .portal-header,
+    body[data-page="portal-loans"] .portal-header,
+    body[data-page="portal-statement"] .portal-header {
+        display: block;
+    }
+    
+    .portal-header-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        max-width: 500px;
+        margin: 0 auto;
+    }
+    
+    .portal-page-title {
+        font-size: 18px;
+        font-weight: 700;
+        color: #111827;
+    }
+    
+    .portal-avatar-small {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--portal-primary), var(--portal-accent));
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 14px;
+        cursor: pointer;
+    }
+    
+    /* Main Content Area */
+    .portal-main {
+        max-width: 500px;
+        margin: 0 auto;
+        padding: 0;
+    }
+    
+    /* Bottom Navigation - iOS Style */
+    .portal-bottom-nav {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: white;
+        border-top: 1px solid #E5E7EB;
+        padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+        z-index: 1000;
+        box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+    }
+    
+    .portal-nav-items {
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        max-width: 500px;
+        margin: 0 auto;
+        padding: 0 8px;
+    }
+    
+    .portal-nav-item {
+        flex: 1;
+        text-align: center;
+        text-decoration: none;
+        color: #9CA3AF;
+        padding: 8px 4px;
+        border-radius: 12px;
+        transition: all 0.2s ease;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+    }
+    
+    .portal-nav-item i {
+        font-size: 20px;
+        transition: all 0.3s ease;
+    }
+    
+    .portal-nav-item span {
+        font-size: 11px;
+        font-weight: 500;
+    }
+    
+    .portal-nav-item.active {
+        color: #111827;
+    }
+    
+    .portal-nav-item:active {
+        transform: scale(0.95);
+    }
+    
+    /* Desktop Sidebar (hidden on mobile) */
+    @media (min-width: 992px) {
+        .portal-wrapper {
+            padding-bottom: 0;
+        }
+        
+        .portal-bottom-nav {
+            display: none;
+        }
+        
+        #layoutSidenav {
+            display: flex !important;
+        }
+    }
+    
+    @media (max-width: 991px) {
+        #layoutSidenav {
+            display: none !important;
+        }
+    }
+    </style>
 </head>
-<body>
+<body class="portal-body">
 <?php
 // The portal previously had its own lightweight top-navbar-only shell,
 // visually disconnected from the rest of the app (no logo, no sidebar,
@@ -28,18 +177,17 @@
 // and brand mark as staff -- just with a member-only nav list. No backend,
 // route, or authorization logic here; purely the visual shell.
 $portalNav = [
-    ['page' => 'portal-home',       'icon' => 'bi-house-door',        'label' => 'Home'],
-    ['page' => 'portal-profile',    'icon' => 'bi-person',            'label' => 'My Profile'],
-    ['page' => 'portal-savings',    'icon' => 'bi-piggy-bank',        'label' => 'My Savings'],
-    ['page' => 'portal-loans',      'icon' => 'bi-cash-coin',         'label' => 'My Loans'],
-    ['page' => 'portal-repayments', 'icon' => 'bi-receipt',           'label' => 'My Repayments'],
-    ['page' => 'portal-fees',       'icon' => 'bi-tag',               'label' => 'My Fees'],
-    ['page' => 'portal-statement',  'icon' => 'bi-file-earmark-text', 'label' => 'My Statement'],
+    ['page' => 'portal-home',       'icon' => 'bi-house-door-fill', 'label' => 'Home'],
+    ['page' => 'portal-savings',    'icon' => 'bi-piggy-bank-fill', 'label' => 'Savings'],
+    ['page' => 'portal-loans',      'icon' => 'bi-cash-coin',       'label' => 'Loans'],
+    ['page' => 'portal-statement',  'icon' => 'bi-file-earmark-text-fill', 'label' => 'Statement'],
+    ['page' => 'portal-menu',       'icon' => 'bi-grid-fill',       'label' => 'More'],
 ];
 $currentPage  = $_GET['page'] ?? 'portal-home';
 // loan-view.php drills into a single loan from My Loans -- keep that item
 // highlighted as active rather than showing nothing selected.
 if ($currentPage === 'portal-loan-view') { $currentPage = 'portal-loans'; }
+if (in_array($currentPage, ['portal-profile', 'portal-repayments', 'portal-fees'])) { $currentPage = 'portal-menu'; }
 
 $memberName   = htmlspecialchars(Session::get('user_name', 'Member'));
 $memberNumber = isset($member['member_number']) ? htmlspecialchars($member['member_number']) : '';
@@ -51,37 +199,18 @@ foreach ($portalNav as $nav) {
 }
 $pageLabel = $activeNavEntry['label'] ?? ucfirst(str_replace(['portal-', '-'], ['', ' '], $currentPage));
 ?>
-<nav class="sb-topnav navbar navbar-expand navbar-dark">
-    <div class="d-flex align-items-center gap-2">
-        <button class="btn btn-link px-2" id="sidebarToggle" aria-label="Toggle sidebar">
-            <i class="bi bi-list" style="font-size:1.1rem;"></i>
-        </button>
-        <span style="font-size:.78rem;color:var(--ink);font-weight:500;"><?= htmlspecialchars($pageLabel) ?></span>
+
+<!-- Mobile Header - Only shown on specific pages -->
+<div class="portal-header">
+    <div class="portal-header-content">
+        <div class="portal-page-title"><?= $pageLabel ?></div>
+        <div class="portal-avatar-small" onclick="window.location='<?= APP_URL ?>/index.php?page=portal-profile'">
+            <?= $userInitial ?>
+        </div>
     </div>
+</div>
 
-    <ul class="navbar-nav ms-auto align-items-center gap-1 flex-row">
-        <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle d-flex align-items-center gap-2 px-2"
-               href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="text-decoration:none;">
-                <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold"
-                     style="width:32px;height:32px;background:var(--navy-900);color:#fff;font-size:.68rem;flex-shrink:0;">
-                    <?= $userInitial ?>
-                </div>
-                <div class="d-none d-md-block" style="line-height:1.15;">
-                    <div style="font-size:.75rem;font-weight:600;color:var(--ink);"><?= $memberName ?></div>
-                    <div style="font-size:.6rem;color:var(--slate-soft);"><?= $memberNumber !== '' ? 'Member ' . $memberNumber : 'Member' ?></div>
-                </div>
-            </a>
-            <ul class="dropdown-menu dropdown-menu-end shadow-sm border mt-1" style="min-width:180px;">
-                <li><a class="dropdown-item small py-2" href="<?= APP_URL ?>/index.php?page=portal-profile"><i class="bi bi-person me-2"></i>My Profile</a></li>
-                <li><a class="dropdown-item small py-2" href="<?= APP_URL ?>/index.php?page=portal-change-password"><i class="bi bi-key me-2"></i>Change Password</a></li>
-                <li><hr class="dropdown-divider my-1"></li>
-                <li><a class="dropdown-item small py-2" style="color:var(--rust);" href="<?= APP_URL ?>/index.php?page=logout"><i class="bi bi-box-arrow-right me-2"></i>Sign Out</a></li>
-            </ul>
-        </li>
-    </ul>
-</nav>
-
+<!-- Desktop Sidebar (hidden on mobile) -->
 <div id="layoutSidenav">
     <div id="layoutSidenav_nav">
         <nav class="sb-sidenav sb-sidenav-dark">
@@ -95,13 +224,27 @@ $pageLabel = $activeNavEntry['label'] ?? ucfirst(str_replace(['portal-', '-'], [
 
             <div class="sb-sidenav-menu">
                 <div class="nav">
-                    <?php foreach ($portalNav as $nav): ?>
-                    <a class="nav-link <?= $currentPage === $nav['page'] ? 'active' : '' ?>"
-                       href="<?= APP_URL ?>/index.php?page=<?= $nav['page'] ?>">
-                        <div class="sb-nav-link-icon"><i class="bi <?= $nav['icon'] ?>"></i></div>
-                        <?= htmlspecialchars($nav['label']) ?>
+                    <a class="nav-link <?= $currentPage === 'portal-home' ? 'active' : '' ?>" href="<?= APP_URL ?>/index.php?page=portal-home">
+                        <div class="sb-nav-link-icon"><i class="bi bi-house-door-fill"></i></div> Home
                     </a>
-                    <?php endforeach; ?>
+                    <a class="nav-link <?= $currentPage === 'portal-profile' ? 'active' : '' ?>" href="<?= APP_URL ?>/index.php?page=portal-profile">
+                        <div class="sb-nav-link-icon"><i class="bi bi-person"></i></div> My Profile
+                    </a>
+                    <a class="nav-link <?= $currentPage === 'portal-savings' ? 'active' : '' ?>" href="<?= APP_URL ?>/index.php?page=portal-savings">
+                        <div class="sb-nav-link-icon"><i class="bi bi-piggy-bank-fill"></i></div> My Savings
+                    </a>
+                    <a class="nav-link <?= $currentPage === 'portal-loans' ? 'active' : '' ?>" href="<?= APP_URL ?>/index.php?page=portal-loans">
+                        <div class="sb-nav-link-icon"><i class="bi bi-cash-coin"></i></div> My Loans
+                    </a>
+                    <a class="nav-link <?= $currentPage === 'portal-repayments' ? 'active' : '' ?>" href="<?= APP_URL ?>/index.php?page=portal-repayments">
+                        <div class="sb-nav-link-icon"><i class="bi bi-receipt"></i></div> My Repayments
+                    </a>
+                    <a class="nav-link <?= $currentPage === 'portal-fees' ? 'active' : '' ?>" href="<?= APP_URL ?>/index.php?page=portal-fees">
+                        <div class="sb-nav-link-icon"><i class="bi bi-tag"></i></div> My Fees
+                    </a>
+                    <a class="nav-link <?= $currentPage === 'portal-statement' ? 'active' : '' ?>" href="<?= APP_URL ?>/index.php?page=portal-statement">
+                        <div class="sb-nav-link-icon"><i class="bi bi-file-earmark-text-fill"></i></div> My Statement
+                    </a>
                 </div>
             </div>
 
@@ -118,11 +261,62 @@ $pageLabel = $activeNavEntry['label'] ?? ucfirst(str_replace(['portal-', '-'], [
                 <?= $content ?>
             </div>
         </main>
-        <?php include VIEW_PATH . '/layouts/footer.php'; ?>
     </div>
 </div>
 
+<!-- Mobile Portal Wrapper -->
+<div class="portal-wrapper">
+    <div class="portal-main">
+        <?= $content ?>
+    </div>
+</div>
+
+<!-- Mobile Bottom Navigation -->
+<nav class="portal-bottom-nav">
+    <div class="portal-nav-items">
+        <?php foreach ($portalNav as $nav): ?>
+        <a href="<?= APP_URL ?>/index.php?page=<?= $nav['page'] ?>" 
+           class="portal-nav-item <?= $currentPage === $nav['page'] ? 'active' : '' ?>">
+            <i class="bi <?= $nav['icon'] ?>"></i>
+            <span><?= htmlspecialchars($nav['label']) ?></span>
+        </a>
+        <?php endforeach; ?>
+    </div>
+</nav>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="<?= APP_URL ?>/public/js/app.js"></script>
+<script>
+// Smooth scroll behavior
+document.querySelectorAll('.portal-nav-item').forEach(item => {
+    item.addEventListener('click', function(e) {
+        // Add haptic feedback simulation on mobile
+        if ('vibrate' in navigator) {
+            navigator.vibrate(10);
+        }
+    });
+});
+
+// Prevent pull-to-refresh on mobile
+let lastTouchY = 0;
+let preventPullToRefresh = false;
+
+document.addEventListener('touchstart', function(e) {
+    if (e.touches.length !== 1) return;
+    lastTouchY = e.touches[0].clientY;
+    preventPullToRefresh = window.pageYOffset === 0;
+}, {passive: true});
+
+document.addEventListener('touchmove', function(e) {
+    const touchY = e.touches[0].clientY;
+    const touchYDelta = touchY - lastTouchY;
+    lastTouchY = touchY;
+
+    if (preventPullToRefresh && touchYDelta > 0) {
+        e.preventDefault();
+        return;
+    }
+}, {passive: false});
+</script>
 </body>
 </html>

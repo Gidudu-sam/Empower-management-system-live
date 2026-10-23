@@ -20,7 +20,7 @@
 $isSharesOnly = ($statementType ?? 'savings') === 'shares';
 $m        = $member;
 $fullName = $m['first_name'] . ' ' . $m['last_name'];
-$acctNo   = ltrim($m['member_number'], 'EMP') ?: str_pad((string)$m['id'], 6, '0', STR_PAD_LEFT);
+$acctNo   = $m['account_number'] ?: str_pad((string)$m['id'], 6, '0', STR_PAD_LEFT);
 $nationalId = $m['national_id'] ?? '—';
 $phone    = $m['phone'] ?? '—';
 $address  = $m['address'] ?? $m['present_address'] ?? $m['home_address'] ?? '—';

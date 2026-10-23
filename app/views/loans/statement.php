@@ -1,7 +1,7 @@
 <?php
 $base     = APP_URL . '/index.php';
 $fullName = $loan['first_name'] . ' ' . $loan['last_name'];
-$acctNo   = ltrim($loan['member_number'], 'EMP') ?: str_pad((string)$loan['member_id'], 6, '0', STR_PAD_LEFT);
+$acctNo   = $loan['account_number'] ?? str_pad((string)$loan['member_id'], 6, '0', STR_PAD_LEFT);
 $nationalId = $loan['national_id'] ?? '—';
 $phone    = $loan['member_phone'] ?? '—';
 $status   = strtolower($loan['status'] ?? 'active');
