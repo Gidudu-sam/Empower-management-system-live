@@ -333,7 +333,7 @@ class LoanModel extends Model
      * the true moment the funds actually move -- reusing the existing
      * column rather than adding a new one.
      */
-    public function disburse(int $id, int $userId, string $disbursementMethod): array
+    public function disburse(int $id, int $userId, string $disbursementMethod, string $disbursementDate): array
     {
         if (!in_array($disbursementMethod, self::LOAN_DISBURSEMENT_METHODS, true)) {
             throw new InvalidArgumentException('Select the funding source: Cash, Bank, or Mobile Money.');
@@ -404,9 +404,9 @@ class LoanModel extends Model
             // Stage — Loan Schedule & Due-Date Integrity Remediation
             // (Finding 1, approved business rule: schedule anchor =
             // actual successful disbursement date). disbursement_date is
-            // the real, non-backdatable moment of THIS call -- never a
-            // client-suppliable value, never the loan's issue_date.
-            $disbursementDate = date('Y-m-d');
+            // now accepted as a parameter, allowing backdating or future
+            // dating when necessary, but defaults to current date if not
+            // specified.
             $this->db->prepare(
                 "UPDATE `loans` SET disbursement_method = ?, disbursement_date = ? WHERE id = ?"
             )->execute([$disbursementMethod, $disbursementDate, $id]);
@@ -1461,6 +1461,18 @@ class LoanModel extends Model
                  WHERE l.id = ? LIMIT 1"
             );
             $stmt->execute([$id]);
+            return $stmt->fetch();
+        } catch (PDOException $e) { return false; }
+    }
+
+    /**
+     * Find loan by loan number
+     */
+    public function findByNumber(string $loanNumber): array|false
+    {
+        try {
+            $stmt = $this->db->prepare("SELECT * FROM `loans` WHERE loan_number = ? LIMIT 1");
+            $stmt->execute([$loanNumber]);
             return $stmt->fetch();
         } catch (PDOException $e) { return false; }
     }

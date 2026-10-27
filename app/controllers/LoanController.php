@@ -1586,14 +1586,25 @@ class LoanController extends Controller
 
         $id = (int)($_POST['loan_id'] ?? 0);
         $disbursementMethod = trim($_POST['disbursement_method'] ?? '');
+        $disbursementDate = trim($_POST['disbursement_date'] ?? '');
+        
         try {
             if (!in_array($disbursementMethod, LoanModel::LOAN_DISBURSEMENT_METHODS, true)) {
                 throw new InvalidArgumentException('Select the funding source: Cash, Bank, or Mobile Money.');
             }
+            if (empty($disbursementDate)) {
+                throw new InvalidArgumentException('Disbursement date is required.');
+            }
+            // Validate date format
+            $dateObj = DateTime::createFromFormat('Y-m-d', $disbursementDate);
+            if (!$dateObj || $dateObj->format('Y-m-d') !== $disbursementDate) {
+                throw new InvalidArgumentException('Invalid disbursement date format.');
+            }
+            
             $loan   = $this->model->find($id);
-            $result = $this->model->disburse($id, (int)Session::get('user_id'), $disbursementMethod);
+            $result = $this->model->disburse($id, (int)Session::get('user_id'), $disbursementMethod, $disbursementDate);
             $this->model->log((int)Session::get('user_id'), 'loan_disbursed',
-                "Disbursed loan {$loan['loan_number']} via {$disbursementMethod} — journal entry {$result['entry_number']}");
+                "Disbursed loan {$loan['loan_number']} via {$disbursementMethod} on {$disbursementDate} — journal entry {$result['entry_number']}");
             (new NotificationModel())->notifyRoles(
                 ['admin', 'treasurer', 'loans_officer'],
                 "Loan {$loan['loan_number']} disbursed",

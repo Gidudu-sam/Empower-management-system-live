@@ -33,7 +33,7 @@ $memberLabel = $member ? trim(($member['first_name'] ?? '') . ' ' . ($member['la
                         </div>
                         <div class="col-md-6">
                             <label class="form-label">Disbursement Date</label>
-                            <input type="text" class="form-control" value="<?= date('d M Y') ?>" disabled>
+                            <input type="date" name="disbursement_date" class="form-control" value="<?= date('Y-m-d') ?>" required>
                         </div>
                         <div class="col-12">
                             <label class="form-label mb-1">Funding Source</label>
