@@ -593,6 +593,7 @@ class RepaymentController extends Controller
             'payment_date'     => $s('payment_date', date('Y-m-d')),
             'amount_paid'      => (float)($_POST['amount_paid'] ?? 0),
             'penalty_paid'     => (float)($_POST['penalty_paid'] ?? 0),
+            'waive_interest'   => isset($_POST['waive_interest']) && $_POST['waive_interest'] == '1',
             // Stage — Loan Repayment Interest Recognition & Submission
             // Integrity Finding 2: no silent default. A missing/blank
             // payment_method now becomes '', which fails validate()'s

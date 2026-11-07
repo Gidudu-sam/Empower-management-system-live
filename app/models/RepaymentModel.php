@@ -449,31 +449,81 @@ class RepaymentModel extends Model
 
             // Stage — Loan Repayment Interest Recognition: split the
             // non-penalty portion of THIS payment between principal and
-            // interest using the loan's own stored flat-interest facts
-            // (loan_amount, interest_amount) -- never a new interest
-            // formula. A live SUM() over this loan's prior repayments
-            // (not a cached running total -- LoanProvisioningService
-            // already treats loan_repayments.principal_paid/interest_paid
-            // as the sole authoritative source, and distrusts cached
-            // totals) tells us how much of the loan's fixed interest has
-            // already been recognised, so a partial-payment sequence
-            // converges to exact totals at payoff instead of drifting.
+            // interest. For loans with installment schedules, we allocate
+            // interest FIRST from unpaid installments (standard practice),
+            // then apply remaining amount to principal. For loans without
+            // schedules, we fall back to the proportional ratio method.
+            //
+            // EARLY PAYMENT WITH INTEREST WAIVER: If waive_interest flag is set,
+            // allocate the entire payment to principal only (interest forgiven).
             if (!array_key_exists('principal_paid', $data) && !array_key_exists('interest_paid', $data)) {
-                $paidTotals = $this->db->prepare(
-                    "SELECT COALESCE(SUM(principal_paid),0) p, COALESCE(SUM(interest_paid),0) i FROM `loan_repayments` WHERE loan_id=?"
-                );
-                $paidTotals->execute([$loan['id']]);
-                $paidSoFar = $paidTotals->fetch();
+                $waiveInterest = !empty($data['waive_interest']);
+                
+                if ($waiveInterest) {
+                    // Early payment - forgive all interest, apply full payment to principal
+                    $principalPaid = $nonPenaltyPaid;
+                    $interestPaid = 0.0;
+                } else {
+                    // Normal payment allocation logic
+                    // Check if loan has an installment schedule
+                    $scheduleStmt = $this->db->prepare(
+                        "SELECT COUNT(*) as cnt FROM `loan_installments` WHERE loan_id=?"
+                    );
+                    $scheduleStmt->execute([$loan['id']]);
+                    $hasSchedule = $scheduleStmt->fetchColumn() > 0;
 
-                $interestRemaining = max(0, round((float)$loan['interest_amount'] - (float)$paidSoFar['i'], 2));
-                $totalPayableOriginal = (float)$loan['loan_amount'] + (float)$loan['interest_amount'];
+                    if ($hasSchedule) {
+                        // INSTALLMENT-BASED ALLOCATION: Use the schedule's structure
+                        // For flat interest loans: allocate based on the installment's principal_due/interest_due ratio
+                        // Get the next unpaid installment to determine the correct allocation
+                        $nextInstallmentStmt = $this->db->prepare(
+                            "SELECT principal_due, interest_due, amount_due, principal_paid, interest_paid_amt, amount_paid
+                             FROM `loan_installments` 
+                             WHERE loan_id=? AND status IN ('pending', 'overdue', 'partial')
+                             ORDER BY installment_no ASC
+                             LIMIT 1"
+                        );
+                        $nextInstallmentStmt->execute([$loan['id']]);
+                        $nextInst = $nextInstallmentStmt->fetch();
 
-                $interestPaid = 0.0;
-                if ($interestRemaining > 0.005 && $totalPayableOriginal > 0) {
-                    $interestRatio = (float)$loan['interest_amount'] / $totalPayableOriginal;
-                    $interestPaid = min(round($nonPenaltyPaid * $interestRatio, 2), $interestRemaining, $nonPenaltyPaid);
+                        if ($nextInst && (float)$nextInst['amount_due'] > 0) {
+                            // Calculate allocation based on the installment's structure (flat interest model)
+                            $principalDue = (float)$nextInst['principal_due'];
+                            $interestDue = (float)$nextInst['interest_due'];
+                            $amountDue = (float)$nextInst['amount_due'];
+                            
+                            // Proportional allocation based on this installment's structure
+                            $principalRatio = $principalDue / $amountDue;
+                            $interestRatio = $interestDue / $amountDue;
+                            
+                            $principalPaid = round($nonPenaltyPaid * $principalRatio, 2);
+                            $interestPaid = round($nonPenaltyPaid * $interestRatio, 2);
+                        } else {
+                            // Fallback if no installment found (shouldn't happen)
+                            $principalPaid = $nonPenaltyPaid;
+                            $interestPaid = 0.0;
+                        }
+
+                    } else {
+                        // RATIO-BASED ALLOCATION: For loans without installment schedules
+                        // (preserves existing logic for special loan types)
+                        $paidTotals = $this->db->prepare(
+                            "SELECT COALESCE(SUM(principal_paid),0) p, COALESCE(SUM(interest_paid),0) i FROM `loan_repayments` WHERE loan_id=?"
+                        );
+                        $paidTotals->execute([$loan['id']]);
+                        $paidSoFar = $paidTotals->fetch();
+
+                        $interestRemaining = max(0, round((float)$loan['interest_amount'] - (float)$paidSoFar['i'], 2));
+                        $totalPayableOriginal = (float)$loan['loan_amount'] + (float)$loan['interest_amount'];
+
+                        $interestPaid = 0.0;
+                        if ($interestRemaining > 0.005 && $totalPayableOriginal > 0) {
+                            $interestRatio = (float)$loan['interest_amount'] / $totalPayableOriginal;
+                            $interestPaid = min(round($nonPenaltyPaid * $interestRatio, 2), $interestRemaining, $nonPenaltyPaid);
+                        }
+                        $principalPaid = max(0, round($nonPenaltyPaid - $interestPaid, 2));
+                    }
                 }
-                $principalPaid = max(0, round($nonPenaltyPaid - $interestPaid, 2));
             } else {
                 $interestPaid  = (float)($data['interest_paid'] ?? 0);
                 $principalPaid = (float)($data['principal_paid'] ?? $nonPenaltyPaid);
@@ -496,6 +546,21 @@ class RepaymentModel extends Model
             // G) so scheduleFullyReconciled() sees THIS payment's effect
             // on the installment rows, not their pre-payment state.
             $this->updateInstallmentOnPayment((int)$loan['id'], $nonPenaltyPaid, $data['payment_date'] ?? null);
+
+            // ADDITIONAL FIX: If balance is now zero, ensure ALL fully-paid installments 
+            // are marked as 'paid' (catches any installments that were skipped due to 
+            // status issues like 'overdue' that got paid later)
+            if ($balanceAfter <= 0.005) {
+                $this->db->prepare(
+                    "UPDATE `loan_installments` 
+                     SET `status` = 'paid', 
+                         `paid_date` = COALESCE(`paid_date`, ?),
+                         `remaining` = 0
+                     WHERE `loan_id` = ? 
+                       AND `amount_paid` >= `amount_due` 
+                       AND `status` != 'paid'"
+                )->execute([$data['payment_date'] ?? date('Y-m-d'), $loan['id']]);
+            }
 
             // Update loan. Completion now also requires the installment
             // schedule (where one exists) to be fully reconciled, not
@@ -772,12 +837,18 @@ class RepaymentModel extends Model
      */
     private function scheduleFullyReconciled(int $loanId): bool
     {
+        // Count installments that are NOT settled (neither 'paid' nor 'discharged')
+        // 'paid' = member made full payment
+        // 'discharged' = eliminated by early settlement (never paid, but contractually settled)
         $stmt = $this->db->prepare(
-            "SELECT COUNT(*) total, COALESCE(SUM(status='paid'),0) paid FROM `loan_installments` WHERE loan_id=?"
+            "SELECT COUNT(*) FROM `loan_installments` 
+             WHERE loan_id=? AND status NOT IN ('paid', 'discharged')"
         );
         $stmt->execute([$loanId]);
-        $r = $stmt->fetch();
-        return (int)$r['total'] === 0 || (int)$r['total'] === (int)$r['paid'];
+        $unsettled = (int)$stmt->fetchColumn();
+        
+        // If no installments exist, or all are either paid or discharged, schedule is reconciled
+        return $unsettled === 0;
     }
 
     /**
@@ -819,12 +890,34 @@ class RepaymentModel extends Model
                     $newPaid = (float)$inst['amount_paid'] + $pay;
                     $newStatus = ($newPaid >= (float)$inst['amount_due']) ? 'paid' : 'partial';
 
+                    // Calculate principal_paid and interest_paid_amt based on installment structure
+                    // For flat interest loans: each payment should allocate proportionally to principal_due and interest_due
+                    $amountDue = (float)$inst['amount_due'];
+                    $principalDue = (float)$inst['principal_due'];
+                    $interestDue = (float)$inst['interest_due'];
+                    
+                    if ($amountDue > 0) {
+                        // Calculate how much of THIS payment goes to principal vs interest
+                        $principalRatio = $principalDue / $amountDue;
+                        $interestRatio = $interestDue / $amountDue;
+                        
+                        $principalFromThisPayment = round($pay * $principalRatio, 2);
+                        $interestFromThisPayment = round($pay * $interestRatio, 2);
+                        
+                        $newPrincipalPaid = (float)$inst['principal_paid'] + $principalFromThisPayment;
+                        $newInterestPaid = (float)$inst['interest_paid_amt'] + $interestFromThisPayment;
+                    } else {
+                        $newPrincipalPaid = (float)$inst['principal_paid'];
+                        $newInterestPaid = (float)$inst['interest_paid_amt'];
+                    }
+
                     $this->db->prepare(
                         "UPDATE `loan_installments`
                          SET `amount_paid`=?, `status`=?, `paid_date`=?,
-                             `remaining`=GREATEST(0, `amount_due` - ?)
+                             `remaining`=GREATEST(0, `amount_due` - ?),
+                             `principal_paid`=?, `interest_paid_amt`=?
                          WHERE `id`=?"
-                    )->execute([$newPaid, $newStatus, $pDate, $newPaid, $inst['id']]);
+                    )->execute([$newPaid, $newStatus, $pDate, $newPaid, $newPrincipalPaid, $newInterestPaid, $inst['id']]);
 
                     $remaining -= $pay;
                 }
@@ -841,12 +934,34 @@ class RepaymentModel extends Model
                     $newStatus = ($newPaid >= (float)$inst['amount_due']) ? 'paid' : 'partial';
                     $paidDate = ($newStatus === 'paid') ? $pDate : null;
 
+                    // Calculate principal_paid and interest_paid_amt based on installment structure
+                    // For flat interest loans: each payment should allocate proportionally to principal_due and interest_due
+                    $amountDue = (float)$inst['amount_due'];
+                    $principalDue = (float)$inst['principal_due'];
+                    $interestDue = (float)$inst['interest_due'];
+                    
+                    if ($amountDue > 0) {
+                        // Calculate how much of THIS payment goes to principal vs interest
+                        $principalRatio = $principalDue / $amountDue;
+                        $interestRatio = $interestDue / $amountDue;
+                        
+                        $principalFromThisPayment = round($pay * $principalRatio, 2);
+                        $interestFromThisPayment = round($pay * $interestRatio, 2);
+                        
+                        $newPrincipalPaid = (float)$inst['principal_paid'] + $principalFromThisPayment;
+                        $newInterestPaid = (float)$inst['interest_paid_amt'] + $interestFromThisPayment;
+                    } else {
+                        $newPrincipalPaid = (float)$inst['principal_paid'];
+                        $newInterestPaid = (float)$inst['interest_paid_amt'];
+                    }
+
                     $this->db->prepare(
                         "UPDATE `loan_installments`
                          SET `amount_paid`=?, `status`=?, `paid_date`=?,
-                             `remaining`=GREATEST(0, `amount_due` - ?)
+                             `remaining`=GREATEST(0, `amount_due` - ?),
+                             `principal_paid`=?, `interest_paid_amt`=?
                          WHERE `id`=?"
-                    )->execute([$newPaid, $newStatus, $paidDate, $newPaid, $inst['id']]);
+                    )->execute([$newPaid, $newStatus, $paidDate, $newPaid, $newPrincipalPaid, $newInterestPaid, $inst['id']]);
 
                     $remaining -= $pay;
                 }

@@ -139,6 +139,15 @@ $loanData = $preLoan ?? null;
                     <div class="text-danger small mt-1"><?= htmlspecialchars($err('amount_paid')) ?></div>
                     <?php endif; ?>
                     <div class="form-text" id="maxHint"></div>
+                    
+                    <!-- Early Payment Interest Waiver Option -->
+                    <div class="form-check mt-2" id="earlyPaymentWaiverGroup" style="display:none;">
+                        <input class="form-check-input" type="checkbox" id="waive_interest" name="waive_interest" value="1">
+                        <label class="form-check-label small text-primary fw-semibold" for="waive_interest">
+                            <i class="bi bi-gift me-1"></i>Early Payment - Waive Remaining Interest
+                        </label>
+                        <div class="form-text small">Check this if the member is making an early payment on the last installment and interest should be forgiven.</div>
+                    </div>
                 </div>
 
                 <!-- Payment Method -->
@@ -372,19 +381,47 @@ window.updateExpectedPaymentDisplay = updateExpectedPaymentDisplay;
 function updateSummary(){
     const amtEl = document.getElementById('amount_paid');
     const penaltyEl = document.getElementById('penalty_paid');
+    const waiveInterestEl = document.getElementById('waive_interest');
+    const waiveInterestGroup = document.getElementById('earlyPaymentWaiverGroup');
     const fmt = n => parseFloat(n||0).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
     const setText = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
     
     const paying   = parseFloat(amtEl?.value)||0;
     const penalty  = Math.min(parseFloat(penaltyEl?.value)||0, window.currentOutstandingPenalty, paying);
     const nonPenaltyPaid = Math.max(0, paying - penalty);
+    const waiveInterest = waiveInterestEl?.checked || false;
     
     // Calculate interest and principal allocation (same logic as backend)
     const interestRemaining = Math.max(0, window.currentInterestAmount - window.currentInterestPaidTotal);
     const totalPayableOriginal = window.currentLoanAmount + window.currentInterestAmount;
+    const principalOutstanding = Math.max(0, window.currentLoanAmount - (window.currentLoanAmount - window.currentOutstanding + interestRemaining));
+    
+    // Show waiver checkbox if:
+    // 1. There is interest remaining
+    // 2. Payment is close to or equal to the principal outstanding (within 5% tolerance)
+    // 3. Outstanding balance is less than 80% of original loan (likely on last installment)
+    const showWaiver = (
+        interestRemaining > 0 && 
+        paying > 0 &&
+        paying >= principalOutstanding * 0.95 &&
+        paying <= principalOutstanding * 1.05 &&
+        window.currentOutstanding < window.currentLoanAmount * 0.8
+    );
+    
+    if (waiveInterestGroup) {
+        waiveInterestGroup.style.display = showWaiver ? '' : 'none';
+        // Auto-uncheck if hidden
+        if (!showWaiver && waiveInterestEl) {
+            waiveInterestEl.checked = false;
+        }
+    }
     
     let interestPaid = 0.0;
-    if (interestRemaining > 0.005 && totalPayableOriginal > 0 && nonPenaltyPaid > 0) {
+    
+    // If waiving interest (early payment), all payment goes to principal only
+    if (waiveInterest) {
+        interestPaid = 0.0;
+    } else if (interestRemaining > 0.005 && totalPayableOriginal > 0 && nonPenaltyPaid > 0) {
         const interestRatio = window.currentInterestAmount / totalPayableOriginal;
         interestPaid = Math.min(
             Math.round(nonPenaltyPaid * interestRatio * 100) / 100,
@@ -420,6 +457,11 @@ window.updateSummary = updateSummary;
 
 if(amtEl) amtEl.addEventListener('input', updateSummary);
 if(penaltyEl) penaltyEl.addEventListener('input', updateSummary);
+
+// Add listener for early payment waiver checkbox
+const waiveInterestEl = document.getElementById('waive_interest');
+if(waiveInterestEl) waiveInterestEl.addEventListener('change', updateSummary);
+
 updatePenaltyFieldVisibility();
 updateExpectedPaymentDisplay();
 updateSummary();
