@@ -56,6 +56,14 @@ class LoanModel extends Model
     /** Loans to Members receivable account (1180) */
     private const LOANS_RECEIVABLE_ACCOUNT = 14;
 
+    /** Insurance-related GL account IDs */
+    private const LOAN_INSURANCE_FUND_ACCOUNT = 22; // 2070 - Loan Insurance Fund
+
+    /** Insurance configuration */
+    private const INSURANCE_RATE = 4.00; // Total insurance rate (4%)
+    private const INSURANCE_PREMIUM_RATE = 0.65; // Old Mutual portion (0.65%)
+    private const INSURANCE_COMMISSION_RATE = 3.35; // SACCO commission (3.35%)
+
     /**
      * Post a loan's disbursement as a journal entry: Dr Loans to Members /
      * Cr <disbursement_method account>, for the actual disbursed principal
@@ -151,27 +159,83 @@ class LoanModel extends Model
         $periodStmt->execute([$disbursementDate, $disbursementDate]);
         $period = $periodStmt->fetch();
 
-        $amount = (float)$loan['loan_amount'];
+        $principalAmount = (float)$loan['loan_amount'];
+
+        // ================================================================
+        // INSURANCE CALCULATION (Phase 2 - Modified for Optional Insurance)
+        // Calculate 4% insurance: 0.65% to Old Mutual, 3.35% SACCO commission
+        // Insurance is deducted from disbursement; member receives principal minus insurance
+        // ONLY applies if insurance_applicable flag is set to 1
+        // ================================================================
+        $insuranceApplicable = (int)($loan['insurance_applicable'] ?? 1); // Default to 1 for backward compatibility
+        
+        if ($insuranceApplicable === 1) {
+            $insuranceAmount = round($principalAmount * (self::INSURANCE_RATE / 100), 2);
+            $premiumAmount = round($principalAmount * (self::INSURANCE_PREMIUM_RATE / 100), 2);
+            $commissionAmount = round($principalAmount * (self::INSURANCE_COMMISSION_RATE / 100), 2);
+            $netDisbursement = $principalAmount - $insuranceAmount;
+        } else {
+            // No insurance for this loan
+            $insuranceAmount = 0;
+            $premiumAmount = 0;
+            $commissionAmount = 0;
+            $netDisbursement = $principalAmount;
+        }
+
+        // Get Insurance Fund account (only needed if insurance applies)
+        if ($insuranceApplicable === 1) {
+            $insuranceFundAccount = (new AccountModel())->findActive(self::LOAN_INSURANCE_FUND_ACCOUNT);
+            if (!$insuranceFundAccount) {
+                throw new InvalidArgumentException('The Loan Insurance Fund account (2070) does not exist or is inactive.');
+            }
+        }
 
         $ownTransaction = !$this->db->inTransaction();
         if ($ownTransaction) {
             $this->db->beginTransaction();
         }
         try {
+            // Update loan record with insurance amounts
+            $this->db->prepare("
+                UPDATE `loans` 
+                SET insurance_rate = ?,
+                    insurance_amount = ?,
+                    insurance_premium_amount = ?,
+                    insurance_commission_amount = ?
+                WHERE id = ?
+            ")->execute([
+                self::INSURANCE_RATE,
+                $insuranceAmount,
+                $premiumAmount,
+                $commissionAmount,
+                $loanId
+            ]);
+
+            // Create journal entry with or without insurance
+            // DR Loans Receivable (full principal)
+            // CR Cash/Bank (net disbursement - after insurance deduction if applicable)
+            // CR Loan Insurance Fund (insurance amount - only if insurance applicable)
             $service = new JournalService();
+            $journalLines = [
+                ['account_id' => $receivableAccount['id'], 'debit' => $principalAmount, 'credit' => 0, 'description' => 'Loans to Members'],
+                ['account_id' => $creditAccount['id'], 'debit' => 0, 'credit' => $netDisbursement, 'description' => $method . ' (net disbursement)'],
+            ];
+            
+            // Add insurance line only if insurance is applicable
+            if ($insuranceApplicable === 1) {
+                $journalLines[] = ['account_id' => $insuranceFundAccount['id'], 'debit' => 0, 'credit' => $insuranceAmount, 'description' => 'Insurance Fund (4%)'];
+            }
+            
             $result = $service->post([
                 'entry_date'             => $disbursementDate,
-                'description'            => "Loan disbursement {$loan['loan_number']}",
+                'description'            => "Loan disbursement {$loan['loan_number']}" . ($insuranceApplicable === 1 ? " (incl. 4% insurance)" : " (no insurance)"),
                 'source_module'          => 'loans',
                 'source_reference_type'  => 'disbursement',
                 'source_reference_id'    => $loanId,
                 'financial_year_id'      => $period['financial_year_id'] ?? null,
                 'accounting_period_id'   => $period['period_id'] ?? null,
                 'created_by'             => $userId,
-                'lines'                  => [
-                    ['account_id' => $receivableAccount['id'], 'debit' => $amount, 'credit' => 0, 'description' => 'Loans to Members'],
-                    ['account_id' => $creditAccount['id'], 'debit' => 0, 'credit' => $amount, 'description' => $method],
-                ],
+                'lines'                  => $journalLines,
             ]);
 
             $this->db->prepare("UPDATE `loans` SET journal_entry_id = ? WHERE id = ?")->execute([$result['id'], $loanId]);
@@ -689,11 +753,15 @@ class LoanModel extends Model
             return false;
         }
 
-        if (!empty($loan['journal_entry_id'])) {
+        // Check if loan has repayments - cannot delete if payments have been made
+        $stmt = $this->db->prepare("SELECT COUNT(*) FROM `loan_repayments` WHERE `loan_id` = ?");
+        $stmt->execute([$id]);
+        $repaymentCount = (int)$stmt->fetchColumn();
+        
+        if ($repaymentCount > 0) {
             throw new InvalidArgumentException(
-                "Loan {$loan['loan_number']} has already been posted to the General Ledger (disbursement journal " .
-                "entry linked) and cannot be deleted. " .
-                "To correct a posted loan, reverse it through the Controlled Corrections workflow instead."
+                "Loan {$loan['loan_number']} has {$repaymentCount} repayment(s) recorded and cannot be deleted. " .
+                "Delete the repayments first, or use Controlled Corrections to reverse the loan."
             );
         }
 
@@ -702,9 +770,17 @@ class LoanModel extends Model
             $this->db->beginTransaction();
         }
         try {
+            // If loan has been posted to GL, reverse the journal entry first
             if (!empty($loan['journal_entry_id'])) {
-                (new JournalService())->reverse((int)$loan['journal_entry_id'], $userId, 'Loan deleted');
+                require_once APP_PATH . '/services/JournalService.php';
+                $journalService = new JournalService();
+                $journalService->reverse((int)$loan['journal_entry_id'], $userId, "Loan {$loan['loan_number']} deleted by admin");
             }
+            
+            // Delete loan installments first (foreign key constraint)
+            $this->db->prepare("DELETE FROM `loan_installments` WHERE `loan_id` = ?")->execute([$id]);
+            
+            // Delete the loan
             $stmt = $this->db->prepare("DELETE FROM `loans` WHERE `id` = ?");
             $stmt->execute([$id]);
             $ok = $stmt->rowCount() > 0;
@@ -1396,12 +1472,40 @@ class LoanModel extends Model
             // Installments are synced FIRST so the loan-level check below
             // sees up-to-date installment status.
             $this->syncOverdueInstallments();
+            
+            // Mark loans as overdue if any installment is overdue
             $this->db->exec(
                 "UPDATE `loans` l SET status='overdue'
                  WHERE l.status='active' AND (
                      l.due_date < CURDATE()
                      OR EXISTS (SELECT 1 FROM `loan_installments` li WHERE li.loan_id=l.id AND li.status='overdue')
                  )"
+            );
+            
+            // ADDITIONAL: Mark fully-paid installments as 'paid' if they were missed
+            // (catches cases where balance is zero but some installments are marked as overdue/pending)
+            $this->db->exec(
+                "UPDATE `loan_installments` 
+                 SET `status` = 'paid', 
+                     `paid_date` = COALESCE(`paid_date`, CURDATE()),
+                     `remaining` = 0
+                 WHERE `amount_paid` >= `amount_due` 
+                   AND `status` != 'paid'"
+            );
+            
+            // ADDITIONAL: Mark loans as completed if balance is zero
+            // (regardless of installment status or due dates)
+            $this->db->exec(
+                "UPDATE `loans` 
+                 SET status='completed'
+                 WHERE outstanding <= 0 
+                   AND status IN ('active', 'overdue')
+                   AND NOT EXISTS (
+                       SELECT 1 FROM `loan_installments` li 
+                       WHERE li.loan_id = loans.id 
+                         AND li.status NOT IN ('paid', 'waived')
+                         AND li.amount_due > li.amount_paid
+                   )"
             );
         } catch (PDOException $e) {}
     }
@@ -1413,12 +1517,25 @@ class LoanModel extends Model
     public function getAlerts(): array
     {
         try {
+            // Updated to show loans with UPCOMING INSTALLMENTS (not just final due date)
+            // This catches loans with any installment due in the next 7 days
             $stmt = $this->db->prepare(
-                "SELECT l.*, m.first_name, m.last_name, m.member_number,
-                        DATEDIFF(l.due_date, CURDATE()) AS days_remaining
-                 FROM `loans` l JOIN `members` m ON m.id = l.member_id
-                 WHERE l.status = 'active' AND l.due_date <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
-                 ORDER BY l.due_date ASC"
+                "SELECT DISTINCT l.*, m.first_name, m.last_name, m.member_number,
+                        (SELECT MIN(DATEDIFF(li.due_date, CURDATE())) 
+                         FROM `loan_installments` li 
+                         WHERE li.loan_id = l.id 
+                           AND li.status IN ('pending', 'overdue', 'partial')
+                           AND li.due_date <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)) AS days_remaining
+                 FROM `loans` l 
+                 JOIN `members` m ON m.id = l.member_id
+                 WHERE l.status IN ('active', 'overdue')
+                   AND EXISTS (
+                       SELECT 1 FROM `loan_installments` li2 
+                       WHERE li2.loan_id = l.id 
+                         AND li2.status IN ('pending', 'overdue', 'partial')
+                         AND li2.due_date <= DATE_ADD(CURDATE(), INTERVAL 7 DAY)
+                   )
+                 ORDER BY days_remaining ASC, l.due_date ASC"
             );
             $stmt->execute();
             return $stmt->fetchAll();

@@ -436,6 +436,30 @@ HTML;
                 <?php endif; ?>
             </div>
 
+            <!-- Insurance Applicable Checkbox -->
+            <div class="col-md-4">
+                <label class="form-label fw-semibold">
+                    Insurance
+                    <i class="bi bi-info-circle text-muted" 
+                       data-bs-toggle="tooltip" 
+                       title="Uncheck for loans issued before insurance implementation (before November 2026)."></i>
+                </label>
+                <div class="form-check form-switch mt-2">
+                    <input class="form-check-input" 
+                           type="checkbox" 
+                           id="insurance_applicable" 
+                           name="insurance_applicable" 
+                           value="1"
+                           <?= ($v('insurance_applicable', '1') === '1' || $v('insurance_applicable', '1') === 1) ? 'checked' : '' ?>>
+                    <label class="form-check-label" for="insurance_applicable">
+                        <strong>Insurance Applicable (4%)</strong>
+                    </label>
+                </div>
+                <div class="form-text small">
+                    Check if this loan includes Old Mutual insurance. Uncheck for older loans without insurance.
+                </div>
+            </div>
+
             <!-- Processing Fee Amount — calculated, hidden -->
             <input type="hidden" id="processing_fee" name="processing_fee" value="<?= $v('processing_fee','0') ?>">
             <input type="hidden" id="processing_fee_display" value="">

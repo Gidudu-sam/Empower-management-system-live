@@ -1240,6 +1240,8 @@ class LoanController extends Controller
             'security_type'           => $this->productFixedSecurityType($loanTypeId) ?? ($s('security_type') ?: null),
             'security_description'    => $s('security_description') ?: null,
             'weekly_savings_commitment' => isset($_POST['weekly_savings_commitment']) && $_POST['weekly_savings_commitment'] !== '' ? (float)$_POST['weekly_savings_commitment'] : null,
+            // Insurance applicable flag - allows opt-out for loans prior to insurance implementation
+            'insurance_applicable'    => isset($_POST['insurance_applicable']) ? 1 : 0,
             // Snapshot the product's currently-configured grace period onto
             // the loan itself at creation time, so later changes to product
             // config never retroactively alter an existing loan's schedule.
