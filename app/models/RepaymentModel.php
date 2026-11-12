@@ -459,6 +459,9 @@ class RepaymentModel extends Model
             if (!array_key_exists('principal_paid', $data) && !array_key_exists('interest_paid', $data)) {
                 $waiveInterest = !empty($data['waive_interest']);
                 
+                // Remove waive_interest from data - it's not a database column, just a flag
+                unset($data['waive_interest']);
+                
                 if ($waiveInterest) {
                     // Early payment - forgive all interest, apply full payment to principal
                     $principalPaid = $nonPenaltyPaid;
