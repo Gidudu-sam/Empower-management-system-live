@@ -392,6 +392,11 @@ class RepaymentModel extends Model
     public function recordRepayment(array $data): int|false
     {
         try {
+            // CRITICAL FIX: Remove waive_interest IMMEDIATELY before any database operations
+            // This flag is only for calculation, never stored in database
+            $waiveInterestFlag = !empty($data['waive_interest']);
+            unset($data['waive_interest']);
+            
             $this->db->beginTransaction();
 
             $loanStmt = $this->db->prepare("SELECT id, outstanding, total_payable, status, loan_type_id, loan_amount, interest_amount FROM `loans` WHERE id = ? FOR UPDATE");
@@ -457,12 +462,8 @@ class RepaymentModel extends Model
             // EARLY PAYMENT WITH INTEREST WAIVER: If waive_interest flag is set,
             // allocate the entire payment to principal only (interest forgiven).
             if (!array_key_exists('principal_paid', $data) && !array_key_exists('interest_paid', $data)) {
-                $waiveInterest = !empty($data['waive_interest']);
-                
-                // Remove waive_interest from data - it's not a database column, just a flag
-                unset($data['waive_interest']);
-                
-                if ($waiveInterest) {
+                // Use the flag we captured at the start of the function
+                if ($waiveInterestFlag) {
                     // Early payment - forgive all interest, apply full payment to principal
                     $principalPaid = $nonPenaltyPaid;
                     $interestPaid = 0.0;
